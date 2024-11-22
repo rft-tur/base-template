@@ -1,94 +1,132 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { toast, ToastProvider } from "@/components/ui/toast";
 
-const menData = [
-  { name: "18-24", value: 12 },
-  { name: "25-34", value: 38 },
-  { name: "35-44", value: 44 },
-  { name: "45-54", value: 35 },
-  { name: "55-64", value: 44 },
-  { name: "65+", value: 30 },
-];
+const isFirstMonday = (date) => {
+  return date.getDay() === 1 && date.getDate() <= 7;
+};
 
-const womenData = [
-  { name: "18-24", value: 2 },
-  { name: "25-34", value: 11 },
-  { name: "35-44", value: 10 },
-  { name: "45-54", value: 5 },
-  { name: "55-64", value: 6 },
-  { name: "65+", value: 3 },
-];
+const isLastFriday = (date) => {
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return date.getDay() === 5 && lastDay.getDate() - date.getDate() < 7;
+};
 
-const barData = [
-  { name: "18-24", men: 12, women: 2 },
-  { name: "25-34", men: 38, women: 11 },
-  { name: "35-44", men: 44, women: 10 },
-  { name: "45-54", men: 35, women: 5 },
-  { name: "55-64", men: 44, women: 6 },
-  { name: "65+", men: 30, women: 3 },
-];
+const isPastDate = (date) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date < today;
+};
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+const isTooSoon = (date) => {
+  const twoDaysFromNow = new Date();
+  twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
+  twoDaysFromNow.setHours(0, 0, 0, 0);
+  return date < twoDaysFromNow;
+};
 
-const PieChartComponent = ({ data, title }) => (
-  <Card className="w-full sm:w-1/2 p-4">
-    <CardHeader>
-      <CardTitle>{title}</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="value"
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip />
-        </PieChart>
-      </ResponsiveContainer>
-    </CardContent>
-  </Card>
-);
+const isWeekend = (date) => {
+  return date.getDay() === 0 || date.getDay() === 6;
+};
 
-const BarChartComponent = () => (
-  <Card className="w-full p-4 mt-8">
-    <CardHeader>
-      <CardTitle>Veteran Unemployment by Age Group and Gender</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={barData}>
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="men" fill="#8884d8" name="Men" />
-          <Bar dataKey="women" fill="#82ca9d" name="Women" />
-        </BarChart>
-      </ResponsiveContainer>
-    </CardContent>
-  </Card>
-);
+const EventBookingCalendar = () => {
+  const [selectedDates, setSelectedDates] = useState([]);
+  const [disabledDates, setDisabledDates] = useState([]);
+
+  useEffect(() => {
+    const generateDisabledDates = () => {
+      const dates = [];
+      const currentDate = new Date();
+      const endDate = new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate());
+
+      while (currentDate <= endDate) {
+        if (
+          isFirstMonday(currentDate) ||
+          isLastFriday(currentDate) ||
+          isPastDate(currentDate) ||
+          isTooSoon(currentDate)
+        ) {
+          dates.push(new Date(currentDate));
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      setDisabledDates(dates);
+    };
+
+    generateDisabledDates();
+  }, []);
+
+  const handleSelect = (date) => {
+    if (selectedDates.some((d) => d.toDateString() === date.toDateString())) {
+      setSelectedDates(selectedDates.filter((d) => d.toDateString() !== date.toDateString()));
+    } else {
+      const newSelectedDates = [...selectedDates, date].sort((a, b) => a - b);
+      const isConsecutiveWeekend =
+        newSelectedDates.length >= 2 &&
+        isWeekend(newSelectedDates[newSelectedDates.length - 1]) &&
+        isWeekend(newSelectedDates[newSelectedDates.length - 2]) &&
+        Math.abs(newSelectedDates[newSelectedDates.length - 1] - newSelectedDates[newSelectedDates.length - 2]) ===
+          86400000;
+
+      if (isConsecutiveWeekend) {
+        toast({
+          title: "Invalid Selection",
+          description: "You cannot book consecutive Saturday and Sunday together.",
+          variant: "destructive",
+        });
+      } else {
+        setSelectedDates(newSelectedDates);
+      }
+    }
+  };
+
+  const handleBooking = () => {
+    if (selectedDates.length > 0) {
+      toast({
+        title: "Booking Successful",
+        description: `You have booked ${selectedDates.length} date(s).`,
+        variant: "success",
+      });
+      setSelectedDates([]);
+    } else {
+      toast({
+        title: "No Dates Selected",
+        description: "Please select at least one date to book.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold">Event Booking Calendar</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Calendar
+          mode="multiple"
+          selected={selectedDates}
+          onSelect={handleSelect}
+          disabled={disabledDates}
+          className="rounded-md border"
+        />
+        <div className="mt-4">
+          <Button onClick={handleBooking} className="w-full">
+            Book Selected Dates
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function App() {
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-8 text-center">Veteran Unemployment Visualization</h1>
-      <div className="flex flex-wrap justify-center gap-4">
-        <PieChartComponent data={menData} title="Men Veterans by Age Group" />
-        <PieChartComponent data={womenData} title="Women Veterans by Age Group" />
+    <ToastProvider>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <EventBookingCalendar />
       </div>
-      <BarChartComponent />
-    </div>
+    </ToastProvider>
   );
 }

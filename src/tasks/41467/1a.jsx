@@ -1,99 +1,118 @@
-import React from "react";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
+import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658'];
+const generateCalendar = (year, month) => {
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const calendar = [];
 
-const dataMen = [
-  { name: '18-24', value: 12 },
-  { name: '25-34', value: 38 },
-  { name: '35-44', value: 44 },
-  { name: '45-54', value: 35 },
-  { name: '55-64', value: 44 },
-  { name: '65+', value: 30 },
-];
+  let dayCounter = 1;
+  for (let week = 0; dayCounter <= daysInMonth; week++) {
+    calendar[week] = [];
+    for (let day = 0; day < 7 && dayCounter <= daysInMonth; day++) {
+      if (week === 0 && day < firstDay.getDay()) {
+        calendar[week][day] = null;
+      } else {
+        calendar[week][day] = dayCounter++;
+      }
+    }
+  }
 
-const dataWomen = [
-  { name: '18-24', value: 2 },
-  { name: '25-34', value: 11 },
-  { name: '35-44', value: 10 },
-  { name: '45-54', value: 5 },
-  { name: '55-64', value: 6 },
-  { name: '65+', value: 3 },
-];
+  return calendar;
+};
 
-const barData = [
-  { age: '18-24', men: 12, women: 2 },
-  { age: '25-34', men: 38, women: 11 },
-  { age: '35-44', men: 44, women: 10 },
-  { age: '45-54', men: 35, women: 5 },
-  { age: '55-64', men: 44, women: 6 },
-  { age: '65+', men: 30, women: 3 },
-];
+const isFirstMonday = (year, month, day) => {
+  return new Date(year, month, day).getDay() === 1 && day <= 7;
+};
 
-function UnemploymentCharts() {
+const isLastFriday = (year, month, day) => {
+  const date = new Date(year, month, day);
+  const lastDay = new Date(year, month + 1, 0);
+  return date.getDay() === 5 && lastDay.getDate() - date.getDate() < 7;
+};
+
+const isWeekend = (dayOfWeek) => dayOfWeek === 0 || dayOfWeek === 6;
+
+function Calendar() {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [calendar, setCalendar] = useState(generateCalendar(currentDate.getFullYear(), currentDate.getMonth()));
+
+  useEffect(() => {
+    setCalendar(generateCalendar(currentDate.getFullYear(), currentDate.getMonth()));
+  }, [currentDate]);
+
+  const handleDateSelect = (day) => {
+    if (day) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+      if (selectedDate) {
+        const selected = new Date(selectedDate);
+        if (isWeekend(date.getDay()) && isWeekend(selected.getDay())) {
+          alert("Cannot book consecutive Saturday and Sunday.");
+          return;
+        }
+      }
+      setSelectedDate(date);
+    }
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(prev => new Date(prev.setMonth(prev.getMonth() + 1)));
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(prev => new Date(prev.setMonth(prev.getMonth() - 1)));
+  };
+
+  const today = new Date();
+  const minDate = new Date(today);
+  minDate.setDate(today.getDate() + 2);
+
   return (
-    <div className="flex flex-col sm:flex-row gap-4">
-      <Card className="w-full sm:w-1/2">
+    <div className="p-4 sm:p-8">
+      <Card>
         <CardHeader>
-          <CardTitle>Men Veterans Unemployment by Age</CardTitle>
+          <CardTitle>Event Booking Calendar</CardTitle>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={dataMen} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                {dataMen.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        <CardContent className="grid grid-cols-7 gap-2 text-center">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            <div key={day} className="font-bold">{day}</div>
+          ))}
+          {calendar.flat().map((day, idx) => {
+            const date = day ? new Date(currentDate.getFullYear(), currentDate.getMonth(), day) : null;
+            const isDisabled = !day || 
+              date < minDate || 
+              isFirstMonday(currentDate.getFullYear(), currentDate.getMonth(), day) ||
+              isLastFriday(currentDate.getFullYear(), currentDate.getMonth(), day);
 
-      <Card className="w-full sm:w-1/2">
-        <CardHeader>
-          <CardTitle>Women Veterans Unemployment by Age</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={dataWomen} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                {dataWomen.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+            return (
+              <Button 
+                key={idx} 
+                variant={day === selectedDate?.getDate() ? "default" : "outline"}
+                onClick={() => handleDateSelect(day)} 
+                disabled={isDisabled}
+                className={cn(
+                  "p-2",
+                  isDisabled ? "text-muted-foreground bg-muted" : "",
+                  date?.getDay() === 0 || date?.getDay() === 6 ? "text-red-500" : ""
+                )}
+              >
+                {day || ''}
+              </Button>
+            );
+          })}
         </CardContent>
-      </Card>
-
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Veteran Unemployment: Men vs Women</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={barData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="age" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="men" fill="#8884d8" name="Men" />
-              <Bar dataKey="women" fill="#82ca9d" name="Women" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button onClick={prevMonth}>Previous</Button>
+          <Button onClick={nextMonth}>Next</Button>
+        </CardFooter>
       </Card>
     </div>
   );
 }
 
 export default function App() {
-  return (
-    <div className="p-4">
-      <UnemploymentCharts />
-    </div>
-  );
+  return <Calendar />;
 }
