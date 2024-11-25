@@ -1,71 +1,116 @@
-import React, { useState } from 'react';
-import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectItem } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
 
-const SummaryCard = ({ data }) => {
-  const [timeRange, setTimeRange] = useState('today');
-  const [valueType, setValueType] = useState('sales');
+const TimeSlot = ({ time, isSelected, onClick }) => (
+  <Button
+    className={`w-full mb-2 ${isSelected ? "bg-blue-500" : "bg-gray-200"}`}
+    onClick={onClick}
+  >
+    {time}
+  </Button>
+);
 
-  const currentData = data[valueType][timeRange];
+const AppointmentBooking = () => {
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
+  const [timeSlots, setTimeSlots] = useState([]);
+
+  const generateTimeSlots = (date) => {
+    const day = date.getDay();
+    const isWednesdayOrFriday = day === 3 || day === 5;
+    const startHour = isWednesdayOrFriday ? 10 : 15;
+    const endHour = isWednesdayOrFriday ? 12 : 17;
+    const slots = [];
+
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const time = `${hour.toString().padStart(2, "0")}:${minute
+          .toString()
+          .padStart(2, "0")}`;
+        slots.push(time);
+      }
+    }
+
+    return slots;
+  };
+
+  useEffect(() => {
+    if (selectedDate) {
+      setTimeSlots(generateTimeSlots(selectedDate));
+    }
+  }, [selectedDate]);
+
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
+    setSelectedTime(null);
+  };
+
+  const handleTimeSelect = (time) => {
+    setSelectedTime(time);
+  };
+
+  const isDateDisabled = (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tenDaysFromNow = new Date(today);
+    tenDaysFromNow.setDate(today.getDate() + 10);
+
+    return (
+      date < today ||
+      date > tenDaysFromNow ||
+      date.getDay() === 0 ||
+      date.getDay() === 6
+    );
+  };
 
   return (
-    <Card className="w-full sm:max-w-md mx-auto">
-      <CardHeader className="flex justify-between items-center">
-        <div className="flex space-x-2">
-          {['today', 'this week', 'this month'].map(range => (
-            <Button 
-              key={range} 
-              variant={timeRange === range ? 'default' : 'outline'}
-              onClick={() => setTimeRange(range)}
-              className={timeRange === range ? 'bg-green-500 text-white' : ''}
-            >
-              {range}
-            </Button>
-          ))}
-        </div>
-        <Select value={valueType} onValueChange={setValueType}>
-          <SelectItem value="sales">Sales</SelectItem>
-          <SelectItem value="shipments">Shipments</SelectItem>
-          <SelectItem value="returns">Returns</SelectItem>
-        </Select>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold">Book Appointment</CardTitle>
       </CardHeader>
-      <div className="border-t border-gray-200 my-2"></div>
-      <CardContent className="text-center">
-        <h2 className="text-lg font-semibold">Total {valueType.charAt(0).toUpperCase() + valueType.slice(1)}</h2>
-        <p className="text-xl font-bold mt-2">{currentData.value}</p>
+      <CardContent>
+        {!selectedDate && (
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={handleDateSelect}
+            disabled={isDateDisabled}
+            className="rounded-md border"
+          />
+        )}
+        {selectedDate && !selectedTime && (
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">Select Time Slot</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {timeSlots.map((time) => (
+                <TimeSlot
+                  key={time}
+                  time={time}
+                  isSelected={time === selectedTime}
+                  onClick={() => handleTimeSelect(time)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        {selectedDate && selectedTime && (
+          <div className="mt-4">
+            <p className="text-lg font-semibold">
+              You have selected: {selectedDate.toDateString()} at {selectedTime}
+            </p>
+          </div>
+        )}
       </CardContent>
-      <div className="border-t border-gray-200 my-2"></div>
-      <CardFooter className="text-sm">
-        <p>{currentData.count} {valueType}</p>
-      </CardFooter>
     </Card>
   );
 };
 
 export default function App() {
-  // Dummy data for demonstration
-  const data = {
-    sales: {
-      today: { value: 5000, count: 10 },
-      'this week': { value: 25000, count: 50 },
-      'this month': { value: 100000, count: 200 },
-    },
-    shipments: {
-      today: { value: 30, count: 5 },
-      'this week': { value: 150, count: 25 },
-      'this month': { value: 600, count: 100 },
-    },
-    returns: {
-      today: { value: 5, count: 2 },
-      'this week': { value: 20, count: 10 },
-      'this month': { value: 80, count: 30 },
-    },
-  };
-
   return (
-    <div className="min-h-screen bg-gray-100 p-4 flex items-center justify-center">
-      <SummaryCard data={data} />
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <AppointmentBooking />
     </div>
   );
 }
