@@ -1,100 +1,144 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from 'react';
+import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { format } from 'date-fns';
 
-const ROWS = 11;
-const SEATS_PER_ROW = 4;
-const LAST_ROW_SEATS = 5;
-const TOTAL_SEATS = (ROWS - 1) * SEATS_PER_ROW + LAST_ROW_SEATS;
+// Mock data for destinations and buses
+const destinations = ['New York', 'Los Angeles', 'Chicago', 'Houston'];
+const buses = [
+  { id: 1, company: 'Greyhound', route: 'NYC - LA', time: '08:00 AM', price: 120 },
+  // Add more mock bus data here
+];
 
-const SeatButton = ({ label, isSelected, onClick }) => (
-  <Button
-    className={`w-12 h-12 m-1 ${
-      isSelected ? "bg-green-500 text-white" : "bg-gray-200 text-black"
-    }`}
-    onClick={onClick}
-  >
-    {label}
-  </Button>
-);
+function App() {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({ from: '', to: '', date: new Date(), selectedBus: null, selectedSeats: [], user: {} });
 
-const BusLayout = ({ selectedSeats, onSeatClick }) => {
-  const renderSeats = () => {
-    let seats = [];
-    for (let row = 0; row < ROWS; row++) {
-      const rowLabel = String.fromCharCode(65 + row);
-      const seatsInRow = row === ROWS - 1 ? LAST_ROW_SEATS : SEATS_PER_ROW;
-      let rowSeats = [];
-      for (let seat = 1; seat <= seatsInRow; seat++) {
-        const seatLabel = `${rowLabel}${seat}`;
-        rowSeats.push(
-          <SeatButton
-            key={seatLabel}
-            label={seatLabel}
-            isSelected={selectedSeats.includes(seatLabel)}
-            onClick={() => onSeatClick(seatLabel)}
-          />
-        );
-        if (seat === 2 && row !== ROWS - 1) {
-          rowSeats.push(<div key={`space-${row}`} className="w-8" />);
-        }
-      }
-      seats.push(
-        <div key={rowLabel} className="flex justify-center">
-          {rowSeats}
-        </div>
-      );
-    }
-    return seats;
-  };
+  const handleNext = () => setStep(step + 1);
+  const handleBack = () => setStep(step - 1);
 
-  return (
-    <Card className="w-full max-w-3xl mx-auto my-4">
-      <CardHeader className="flex justify-between items-center">
-        <div>Door</div>
-        <div>Driver</div>
-      </CardHeader>
-      <CardContent>{renderSeats()}</CardContent>
-    </Card>
+  const Step1 = () => (
+    <div className="flex flex-col space-y-4">
+      <Input type="select" placeholder="From" value={formData.from} onChange={e => setFormData({...formData, from: e.target.value})}>
+        {destinations.map(dest => <option key={dest}>{dest}</option>)}
+      </Input>
+      <Input type="select" placeholder="To" value={formData.to} onChange={e => setFormData({...formData, to: e.target.value})}>
+        {destinations.map(dest => <option key={dest}>{dest}</option>)}
+      </Input>
+      <Input type="date" value={formData.date.toISOString().split('T')[0]} onChange={e => setFormData({...formData, date: new Date(e.target.value)})} />
+      <Button onClick={handleNext}>Next</Button>
+    </div>
   );
-};
 
-export default function App() {
-  const [selectedSeats, setSelectedSeats] = useState([]);
+  const Step2 = () => (
+    <div>
+      <Button onClick={handleBack}>Back</Button>
+      <div className="mt-4 space-y-4">
+        {buses.map(bus => (
+          <Card key={bus.id} onClick={() => setFormData({...formData, selectedBus: bus})} className="cursor-pointer">
+            <CardHeader>
+              <CardTitle>{bus.company}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>{bus.route}</p>
+              <p>{bus.time}</p>
+            </CardContent>
+            <CardContent className="text-right font-bold">${bus.price}</CardContent>
+          </Card>
+        ))}
+      </div>
+      {formData.selectedBus && <Button onClick={handleNext} className="mt-4">Next</Button>}
+    </div>
+  );
 
-  const handleSeatClick = (seatLabel) => {
-    setSelectedSeats((prevSelected) =>
-      prevSelected.includes(seatLabel)
-        ? prevSelected.filter((seat) => seat !== seatLabel)
-        : [...prevSelected, seatLabel]
+  const Step3 = () => {
+    const [seats, setSeats] = useState(Array(45).fill(false));
+    const toggleSeat = (index) => {
+      if (!seats[index]) {
+        const newSeats = [...seats];
+        newSeats[index] = !newSeats[index];
+        setSeats(newSeats);
+        setFormData({...formData, selectedSeats: formData.selectedSeats.includes(index) ? formData.selectedSeats : [...formData.selectedSeats, index]});
+      }
+    };
+
+    return (
+      <div>
+        <Button onClick={handleBack}>Back</Button>
+        <div className="mt-4 border-2 p-4 rounded-lg">
+          <div className="flex justify-between mb-2"><span>Driver</span><span>Door</span></div>
+          {Array.from({ length: 12 }).map((_, row) => (
+            <div key={row} className="flex justify-between mb-2 last:mb-0">
+              {Array(4).fill().map((_, col) => {
+                const seatIndex = row * 4 + col;
+                return <button 
+                  key={col} 
+                  className={`w-10 h-10 border ${seats[seatIndex] ? 'bg-green-500 text-white' : 'bg-white'} ${seatIndex >= 44 ? 'col-span-2' : ''}`} 
+                  onClick={() => toggleSeat(seatIndex)}
+                  disabled={seats[seatIndex]}
+                >
+                  {`${String.fromCharCode(65 + row)}${col + 1}`}
+                </button>
+              })}
+            </div>
+          ))}
+        </div>
+        <p className="mt-2">Selected Seats: {formData.selectedSeats.map(seat => ` ${String.fromCharCode(65 + Math.floor(seat / 4))}${seat % 4 + 1}`).join(', ')}</p>
+        <Button onClick={handleNext} className="mt-4">Next</Button>
+      </div>
     );
   };
 
+  const Step4 = () => (
+    <div>
+      <Button onClick={handleBack}>Back</Button>
+      <div className="mt-4">
+        <h2>Summary</h2>
+        <p>Date: {format(formData.date, 'PP')}</p>
+        <p>Bus: {formData.selectedBus?.company}</p>
+        <p>Seats: {formData.selectedSeats.length}</p>
+        <p>Total Cost: ${formData.selectedBus?.price * formData.selectedSeats.length}</p>
+        <p>Booking Fee: 5%</p>
+        <p>VAT: 10%</p>
+        <Input placeholder="Name" onChange={e => setFormData({...formData, user: {...formData.user, name: e.target.value}})} />
+        <Input placeholder="Phone" type="tel" onChange={e => setFormData({...formData, user: {...formData.user, phone: e.target.value}})} />
+        <Input placeholder="Email" type="email" onChange={e => setFormData({...formData, user: {...formData.user, email: e.target.value}})} />
+        <Checkbox>Agree to terms</Checkbox>
+        <Button onClick={() => setStep(5)}>Confirm Booking</Button>
+      </div>
+    </div>
+  );
+
+  const Step5 = () => (
+    <div>
+      <h1 className="text-2xl">Thank You, {formData.user.name}!</h1>
+      <div className="flex">
+        <div className="w-1/2">
+          <h2>Billing Details</h2>
+          <p>PNR: {Math.random().toString(36).substring(7)}</p>
+          {/* Add more user info */}
+        </div>
+        <div className="w-1/2">
+          <h2>Journey Details</h2>
+          <p>Date: {format(formData.date, 'PP')}</p>
+          <p>Time: {formData.selectedBus?.time}</p>
+          <p>Seats: {formData.selectedSeats.map(seat => ` ${String.fromCharCode(65 + Math.floor(seat / 4))}${seat % 4 + 1}`).join(', ')}</p>
+          <p>Route: {formData.selectedBus?.route}</p>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-xl font-bold mb-4">Book your seat</h1>
-      <BusLayout selectedSeats={selectedSeats} onSeatClick={handleSeatClick} />
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Selected Seats</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {selectedSeats.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {selectedSeats.map((seat) => (
-                <span
-                  key={seat}
-                  className="bg-green-500 text-white px-2 py-1 rounded"
-                >
-                  {seat}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p>No seats selected</p>
-          )}
-        </CardContent>
-      </Card>
+      {step === 1 && <Step1 />}
+      {step === 2 && <Step2 />}
+      {step === 3 && <Step3 />}
+      {step === 4 && <Step4 />}
+      {step === 5 && <Step5 />}
     </div>
   );
 }
+
+export default App;
