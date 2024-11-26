@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 const initialStudents = [
   { id: 1, fullname: "John Doe", section: "A", rollNumber: 1, mathScore: 85, scienceScore: 92, englishScore: 78 },
-  { id: 2, fullname: "Jane Smith", section: "B", rollNumber: 2, mathScore: 78, scienceScore: 88, englishScore: 95 },
+  { id: 2, fullname: "Jane Smith", section: "B", rollNumber: 2, mathScore: 20, scienceScore: 30, englishScore: 20 },
   // Add more students here...
 ];
 
@@ -102,7 +102,6 @@ export default function App() {
                 <SelectValue placeholder="Filter by section" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Sections</SelectItem>
                 <SelectItem value="A">Section A</SelectItem>
                 <SelectItem value="B">Section B</SelectItem>
               </SelectContent>
@@ -112,7 +111,6 @@ export default function App() {
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
                 <SelectItem value="pass">Pass</SelectItem>
                 <SelectItem value="fail">Fail</SelectItem>
               </SelectContent>
@@ -146,7 +144,7 @@ export default function App() {
                     <TableCell>{student.englishScore}</TableCell>
                     <TableCell>{totalScore.toFixed(2)}</TableCell>
                     <TableCell>
-                      <Badge variant={status === "pass" ? "success" : "destructive"}>{status}</Badge>
+                      <Badge variant={status === "pass" ? "default" : "destructive"} className={status == "pass" ? "bg-green-600" : ""}>{status}</Badge>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

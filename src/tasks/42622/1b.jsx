@@ -1,169 +1,219 @@
-import React, { useState } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import React, { useState, useEffect, useMemo } from 'react';
+// commented so that stackblitz does not crash
+// import { 
+//   Table, TableBody, TableCell, TableHead, TableHeader, TableRow, 
+//   Card, CardContent, CardHeader, CardTitle, 
+//   Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+//   Input, Select, SelectItem, Badge, Pagination, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
+//   useDisclosure,
+// } from "@/components/ui";
 
 const initialStudents = [
-  { id: 1, fullname: "John Doe", section: "A", rollNumber: 1, mathScore: 85, scienceScore: 90, englishScore: 88 },
-  { id: 2, fullname: "Jane Smith", section: "B", rollNumber: 2, mathScore: 92, scienceScore: 88, englishScore: 95 },
-  // Add more students as needed
+  { id: 1, fullname: 'John Doe', section: 'A', roleNumber: 1, math: 75, science: 80, english: 85 },
+  { id: 2, fullname: 'Jane Smith', section: 'B', roleNumber: 2, math: 55, science: 65, english: 70 },
+  // Add more students here for testing
 ];
 
 export default function App() {
   const [students, setStudents] = useState(initialStudents);
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
-  const [editingStudent, setEditingStudent] = useState(null);
-  const [isEditNameOpen, setIsEditNameOpen] = useState(false);
-  const [isSetScoresOpen, setIsSetScoresOpen] = useState(false);
-  const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [sectionFilter, setSectionFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const sortedStudents = React.useMemo(() => {
-    let sortableStudents = [...students];
-    if (sortConfig.key !== null) {
-      sortableStudents.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sortableStudents;
-  }, [students, sortConfig]);
+  const filteredStudents = useMemo(() => {
+    return students.filter(student => 
+      student.fullname.toLowerCase().includes(search.toLowerCase()) &&
+      (sectionFilter === '' || student.section === sectionFilter) &&
+      (statusFilter === '' || (student.totalScore > 60 ? 'pass' : 'fail') === statusFilter)
+    );
+  }, [students, search, sectionFilter, statusFilter]);
 
-  const requestSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
-    }
-    setSortConfig({ key, direction });
+  const paginatedStudents = useMemo(() => {
+    const start = (page - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredStudents.slice(start, end);
+  }, [filteredStudents, page, itemsPerPage]);
+
+  const handleSort = (key) => {
+    const sortedStudents = [...students].sort((a, b) => 
+      a[key] > b[key] ? 1 : a[key] < b[key] ? -1 : 0
+    );
+    setStudents(sortedStudents);
   };
 
-  const handleEditName = () => {
-    setStudents(students.map(s => s.id === editingStudent.id ? { ...s, fullname: editingStudent.fullname } : s));
-    setIsEditNameOpen(false);
-  };
+  const EditNameModal = ({ student, onClose }) => {
+    const [name, setName] = useState(student.fullname);
+    
+    const handleSave = () => {
+      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, fullname: name } : s));
+      onClose();
+    };
 
-  const handleSetScores = () => {
-    setStudents(students.map(s => s.id === editingStudent.id ? { ...s, ...editingStudent } : s));
-    setIsSetScoresOpen(false);
-  };
-
-  const handleRemoveStudent = () => {
-    setStudents(students.filter(s => s.id !== editingStudent.id));
-    setIsConfirmRemoveOpen(false);
-  };
-
-  return (
-    <div className="container mx-auto p-4">
-      <Table className="w-full">
-        <TableHeader>
-          <TableRow>
-            <TableHead onClick={() => requestSort('fullname')} className="cursor-pointer">Full Name</TableHead>
-            <TableHead>Section</TableHead>
-            <TableHead onClick={() => requestSort('rollNumber')} className="cursor-pointer">Roll Number</TableHead>
-            <TableHead onClick={() => requestSort('mathScore')} className="cursor-pointer">Math Score</TableHead>
-            <TableHead onClick={() => requestSort('scienceScore')} className="cursor-pointer">Science Score</TableHead>
-            <TableHead onClick={() => requestSort('englishScore')} className="cursor-pointer">English Score</TableHead>
-            <TableHead onClick={() => requestSort('totalScore')} className="cursor-pointer">Total Score</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sortedStudents.map((student) => (
-            <TableRow key={student.id}>
-              <TableCell>{student.fullname}</TableCell>
-              <TableCell>{student.section}</TableCell>
-              <TableCell>{student.rollNumber}</TableCell>
-              <TableCell>{student.mathScore}</TableCell>
-              <TableCell>{student.scienceScore}</TableCell>
-              <TableCell>{student.englishScore}</TableCell>
-              <TableCell>{student.mathScore + student.scienceScore + student.englishScore}</TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">Actions</Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => { setEditingStudent(student); setIsEditNameOpen(true); }}>
-                      Edit Name
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setEditingStudent(student); setIsSetScoresOpen(true); }}>
-                      Set Scores
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setEditingStudent(student); setIsConfirmRemoveOpen(true); }}>
-                      Remove
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
-      <Dialog open={isEditNameOpen} onOpenChange={setIsEditNameOpen}>
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Name</DialogTitle>
           </DialogHeader>
-          <Input
-            value={editingStudent?.fullname || ''}
-            onChange={(e) => setEditingStudent({ ...editingStudent, fullname: e.target.value })}
-          />
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
           <DialogFooter>
-            <Button onClick={handleEditName}>Save</Button>
+            <Button onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    );
+  };
 
-      <Dialog open={isSetScoresOpen} onOpenChange={setIsSetScoresOpen}>
+  const SetScoresModal = ({ student, onClose }) => {
+    const [scores, setScores] = useState({ math: student.math, science: student.science, english: student.english });
+
+    const handleSave = () => {
+      setStudents(prev => prev.map(s => 
+        s.id === student.id ? { ...s, ...scores, totalScore: (scores.math + scores.science + scores.english) / 3 } : s
+      ));
+      onClose();
+    };
+
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Set Scores</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4">
-            <Label>Math Score</Label>
-            <Input
-              type="number"
-              value={editingStudent?.mathScore || ''}
-              onChange={(e) => setEditingStudent({ ...editingStudent, mathScore: parseInt(e.target.value) })}
-            />
-            <Label>Science Score</Label>
-            <Input
-              type="number"
-              value={editingStudent?.scienceScore || ''}
-              onChange={(e) => setEditingStudent({ ...editingStudent, scienceScore: parseInt(e.target.value) })}
-            />
-            <Label>English Score</Label>
-            <Input
-              type="number"
-              value={editingStudent?.englishScore || ''}
-              onChange={(e) => setEditingStudent({ ...editingStudent, englishScore: parseInt(e.target.value) })}
-            />
-          </div>
+          <Input type="number" value={scores.math} onChange={(e) => setScores({...scores, math: e.target.value})} placeholder="Math" />
+          <Input type="number" value={scores.science} onChange={(e) => setScores({...scores, science: e.target.value})} placeholder="Science" />
+          <Input type="number" value={scores.english} onChange={(e) => setScores({...scores, english: e.target.value})} placeholder="English" />
           <DialogFooter>
-            <Button onClick={handleSetScores}>Save</Button>
+            <Button onClick={handleSave}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    );
+  };
 
-      <Dialog open={isConfirmRemoveOpen} onOpenChange={setIsConfirmRemoveOpen}>
-        <DialogContent>
+  const ConfirmRemove = ({ student, onClose }) => {
+    const handleRemove = () => {
+      setStudents(prev => prev.filter(s => s.id !== student.id));
+      onClose();
+    };
+
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="bg-red-500 text-white">
           <DialogHeader>
             <DialogTitle>Confirm Removal</DialogTitle>
           </DialogHeader>
-          <p>Are you sure you want to remove this student?</p>
+          <p>Are you sure you want to remove {student.fullname}?</p>
           <DialogFooter>
-            <Button variant="destructive" onClick={handleRemoveStudent}>Remove</Button>
+            <Button onClick={handleRemove} className="bg-red-600 hover:bg-red-700">Remove</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    );
+  };
+
+  return (
+    <div className="flex justify-center p-4">
+      <Card className="w-full max-w-5xl">
+        <CardHeader>
+          <CardTitle>Student Management</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row justify-between mb-4">
+            <Input 
+              placeholder="Search by name..." 
+              value={search} 
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
+              className="mb-2 sm:mb-0 sm:mr-2"
+            />
+            <Select value={sectionFilter} onValueChange={(value) => { setSectionFilter(value); setPage(1); }}>
+              <SelectItem value="">All Sections</SelectItem>
+              <SelectItem value="A">A</SelectItem>
+              <SelectItem value="B">B</SelectItem>
+            </Select>
+            <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPage(1); }}>
+              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="pass">Pass</SelectItem>
+              <SelectItem value="fail">Fail</SelectItem>
+            </Select>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead onClick={() => handleSort('fullname')}>Fullname</TableHead>
+                <TableHead>Section</TableHead>
+                <TableHead onClick={() => handleSort('roleNumber')}>Role Number</TableHead>
+                <TableHead onClick={() => handleSort('math')}>Math Score</TableHead>
+                <TableHead onClick={() => handleSort('science')}>Science Score</TableHead>
+                <TableHead onClick={() => handleSort('english')}>English Score</TableHead>
+                <TableHead onClick={() => handleSort('totalScore')}>Total Score</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedStudents.map(student => (
+                <TableRow key={student.id}>
+                  <TableCell>{student.fullname}</TableCell>
+                  <TableCell>{student.section}</TableCell>
+                  <TableCell>{student.roleNumber}</TableCell>
+                  <TableCell>{student.math}</TableCell>
+                  <TableCell>{student.science}</TableCell>
+                  <TableCell>{student.english}</TableCell>
+                  <TableCell>{student.totalScore = ((student.math + student.science + student.english) / 3).toFixed(2)}</TableCell>
+                  <TableCell><Badge variant={student.totalScore > 60 ? 'success' : 'destructive'}>{student.totalScore > 60 ? 'Pass' : 'Fail'}</Badge></TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline">Actions</Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" onClick={onOpen}>Edit Name</Button>
+                          </DialogTrigger>
+                          {isOpen && <EditNameModal student={student} onClose={onClose} />}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost">Set Scores</Button>
+                          </DialogTrigger>
+                          <SetScoresModal student={student} onClose={() => onClose()} />
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <DialogTrigger asChild>
+                            <Button variant="destructive">Remove</Button>
+                          </DialogTrigger>
+                          <ConfirmRemove student={student} onClose={() => onClose()} />
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <div className="flex justify-between items-center mt-4">
+            <Pagination
+              total={filteredStudents.length}
+              page={page}
+              onChange={setPage}
+              showControls
+            />
+            <Select value={itemsPerPage.toString()} onValueChange={(value) => { setItemsPerPage(parseInt(value)); setPage(1); }}>
+              <SelectItem value="10">10 per page</SelectItem>
+              <SelectItem value="20">20 per page</SelectItem>
+              <SelectItem value="50">50 per page</SelectItem>
+            </Select>
+            <div>
+              Showing {Math.min(page * itemsPerPage, filteredStudents.length)} of {filteredStudents.length}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
