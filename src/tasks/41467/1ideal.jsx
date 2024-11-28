@@ -63,7 +63,8 @@ function ProjectPill({ project }) {
   );
 }
 
-function TaskRow({ task, onSelect, isSelected }) {
+function TaskRow({ task, onSelect, isSelected, onAction, persons, projects }) {
+
   return (
     <TableRow>
       <TableCell>
@@ -84,10 +85,78 @@ function TaskRow({ task, onSelect, isSelected }) {
             <Button variant="ghost">Actions</Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem>Set Status</DropdownMenuItem>
-            <DropdownMenuItem>Assign Person</DropdownMenuItem>
-            <DropdownMenuItem>Assign Project</DropdownMenuItem>
-            <DropdownMenuItem>Remove Task</DropdownMenuItem>
+            <Dialog>
+              <DialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Set Status</DropdownMenuItem>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Set Status</DialogTitle>
+                </DialogHeader>
+                <Select onValueChange={(value) => onAction(task.id, "setStatus", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(statusColors).map((status) => (
+                      <SelectItem key={status} value={status}>{status}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </DialogContent>
+            </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Assign Person</DropdownMenuItem>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Assign Person</DialogTitle>
+                </DialogHeader>
+                <Select onValueChange={(value) => onAction(task.id, "assignPerson", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Person" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {persons.map((person) => (
+                      <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </DialogContent>
+            </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Assign Project</DropdownMenuItem>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Assign Project</DialogTitle>
+                </DialogHeader>
+                <Select onValueChange={(value) => onAction(task.id, "assignProject", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </DialogContent>
+            </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete Task</DropdownMenuItem>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete Task</DialogTitle>
+                </DialogHeader>
+                <p>Are you sure you want to delete this task?</p>
+                <Button onClick={() => onAction(task.id, 'delete')}>Confirm</Button>
+              </DialogContent>
+            </Dialog>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -95,7 +164,7 @@ function TaskRow({ task, onSelect, isSelected }) {
   );
 }
 
-function Filters({ onFilterChange }) {
+function Filters({ onFilterChange, persons, projects }) {
   return (
     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
       <Input placeholder="Search tasks" onChange={(e) => onFilterChange("search", e.target.value)} />
@@ -104,7 +173,7 @@ function Filters({ onFilterChange }) {
           <SelectValue placeholder="Select project" />
         </SelectTrigger>
         <SelectContent>
-          {mockProjects.map((project) => (
+          {projects.map((project) => (
             <SelectItem key={project.id} value={project.id.toString()}>{project.name}</SelectItem>
           ))}
         </SelectContent>
@@ -124,7 +193,7 @@ function Filters({ onFilterChange }) {
           <SelectValue placeholder="Select assigned person" />
         </SelectTrigger>
         <SelectContent>
-          {mockPersons.map((person) => (
+          {persons.map((person) => (
             <SelectItem key={person.id} value={person.id.toString()}>{person.name}</SelectItem>
           ))}
         </SelectContent>
@@ -133,7 +202,7 @@ function Filters({ onFilterChange }) {
   );
 }
 
-function BulkActions({ selectedTasks, onBulkAction }) {
+function BulkActions({ selectedTasks, onBulkAction, persons, projects }) {
   return (
     <div className="flex space-x-2 mb-4">
       <Dialog>
@@ -181,8 +250,8 @@ function BulkActions({ selectedTasks, onBulkAction }) {
               <SelectValue placeholder="Select person" />
             </SelectTrigger>
             <SelectContent>
-              {mockPersons.map((person) => (
-                <SelectItem key={person.id} value={person.id.toString()}>{person.name}</SelectItem>
+              {persons.map((person) => (
+                <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -192,8 +261,83 @@ function BulkActions({ selectedTasks, onBulkAction }) {
   );
 }
 
+function CreatePerson({ persons, setPersons }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState();
+
+  const handleCreate = () => {
+    let id = persons[persons.length - 1].id + 1;
+    setPersons(prev => [...prev, { id, name, image: "" }]);
+    setName("");
+    setOpen(false);
+  }
+
+  return (
+    <Dialog open={open}>
+      <DialogTrigger asChild>
+        <Button onClick={()=>setOpen(true)}>Create Person</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Person</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <Input
+            type="text"
+            placeholder="Name"
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <Button onClick={handleCreate}>Create Person</Button>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function CreateProject({projects, setProjects}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState();
+  const [color, setColor] = useState();
+
+  const handleCreate = () => {
+    let id = projects[projects.length - 1].id + 1;
+    setProjects(prev => [...prev, { id, name, color }])
+    setName("");
+    setColor("");
+    setOpen(false);
+  }
+
+  return (
+    <Dialog open={open}>
+      <DialogTrigger asChild>
+        <Button onClick={()=>setOpen(true)}>Create Project</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Project</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <Input
+            type="text"
+            placeholder="Name"
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input
+            type="color"
+            placeholder="Color"
+            onChange={(e) => setColor(e.target.value)}
+          />
+        </div>
+        <Button onClick={handleCreate}>Create Project</Button>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function App() {
   const [tasks, setTasks] = useState(mockTasks);
+  const [persons, setPersons] = useState(mockPersons);
+  const [projects, setProjects] = useState(mockProjects);
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [filters, setFilters] = useState({});
   const [pagination, setPagination] = useState({ page: 1, pageSize: 10 });
@@ -203,14 +347,89 @@ export default function App() {
   };
 
   const handleTaskSelect = (taskId) => {
-    setSelectedTasks(prev => 
+    setSelectedTasks(prev =>
       prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
     );
   };
 
+  const handleTaskAction = (id, action, value) => {
+    switch (action) {
+      case 'setStatus':
+        setTasks(prev => {
+          return prev.map(task => {
+            if (task.id === id) {
+              return { ...task, status: value };
+            }
+            return task;
+          });
+        });
+        break;
+      case 'assignProject':
+        setTasks(prev => {
+          return prev.map(task => {
+            if (task.id === id) {
+              const project = projects.find(p => p.id === value);
+              if (project) {
+                return { ...task, project: { ...project } };
+              }
+            }
+            return task;
+          });
+        });
+        break;
+      case 'assignPerson':
+        setTasks(prev => {
+          return prev.map(task => {
+            if (task.id === id) {
+              const person = persons.find(p => p.id === value);
+              if (person) {
+                return { ...task, assignedTo: { ...person } };
+              }
+            }
+            return task;
+          });
+        });
+        break;
+      case 'delete':
+        setTasks(prev =>
+          prev.filter(task => task.id !== id)
+        );
+        break;
+
+    }
+  }
+
   const handleBulkAction = (action, value) => {
-    // Implement bulk actions here
-    console.log(`Bulk action: ${action}, value: ${value}, tasks: ${selectedTasks}`);
+    switch (action) {
+      case 'delete':
+        setTasks(prev =>
+          prev.filter(task => !selectedTasks.includes(task.id))
+        );
+        break;
+      case 'setStatus':
+        setTasks(prev => {
+          return prev.map(task => {
+            if (selectedTasks.includes(task.id)) {
+              return { ...task, status: value };
+            }
+            return task;
+          });
+        });
+        break;
+      case 'assignPerson':
+        setTasks(prev => {
+          return prev.map(task => {
+            if (selectedTasks.includes(task.id)) {
+              const person = persons.find(p => p.id === value);
+              if (person) {
+                return { ...task, assignedTo: { ...person } };
+              }
+            }
+            return task;
+          });
+        });
+        break;
+    }
   };
 
   const filteredTasks = tasks.filter(task => {
@@ -230,11 +449,11 @@ export default function App() {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Team Task Management</h1>
       <div className="flex justify-between mb-4">
-        <Button>Create Person</Button>
-        <Button>Create Project</Button>
+        <CreatePerson persons={persons} setPersons={setPersons} />
+        <CreateProject projects={projects} setProjects={setProjects} />
       </div>
-      <Filters onFilterChange={handleFilterChange} />
-      <BulkActions selectedTasks={selectedTasks} onBulkAction={handleBulkAction} />
+      <Filters persons={persons} projects={projects} onFilterChange={handleFilterChange} />
+      <BulkActions selectedTasks={selectedTasks} onBulkAction={handleBulkAction} persons={persons} />
       <Table>
         <TableHeader>
           <TableRow>
@@ -251,11 +470,14 @@ export default function App() {
         </TableHeader>
         <TableBody>
           {paginatedTasks.map(task => (
-            <TaskRow 
-              key={task.id} 
-              task={task} 
+            <TaskRow
+              key={task.id}
+              task={task}
               onSelect={handleTaskSelect}
               isSelected={selectedTasks.includes(task.id)}
+              onAction={handleTaskAction}
+              persons={persons}
+              projects={projects}
             />
           ))}
         </TableBody>
