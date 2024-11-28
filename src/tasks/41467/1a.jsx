@@ -1,223 +1,145 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from 'react';
+// commented out since stackblitz does not compile
+// import { Checkbox, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Input, Select, SelectItem, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, Pagination } from "@/components/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-//import { DatePicker } from "@/components/ui/date-picker";
-import { Carousel } from "@/components/ui/carousel";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-const rooms = [
-  {
-    name: "Standard Room",
-    rate: 100,
-    amenities: ["Free Wi-Fi", "TV", "Air Conditioning"],
-    photos: ["standard1.jpg", "standard2.jpg", "standard3.jpg"],
-  },
-  {
-    name: "Deluxe Room",
-    rate: 150,
-    amenities: ["Free Wi-Fi", "TV", "Air Conditioning", "Mini Bar"],
-    photos: ["deluxe1.jpg", "deluxe2.jpg", "deluxe3.jpg"],
-  },
-  {
-    name: "Suite",
-    rate: 250,
-    amenities: ["Free Wi-Fi", "TV", "Air Conditioning", "Mini Bar", "Jacuzzi"],
-    photos: ["suite1.jpg", "suite2.jpg", "suite3.jpg"],
-  },
+const statuses = [
+  { value: 'inactive', label: 'Inactive', color: 'bg-gray-100 text-gray-800' },
+  { value: 'active', label: 'Active', color: 'bg-green-100 text-green-800' },
+  { value: 'done', label: 'Done', color: 'bg-green-500 text-white' },
+  { value: 'due', label: 'Due', color: 'bg-yellow-100 text-yellow-800' },
 ];
 
-export default function App() {
-  const [step, setStep] = useState(1);
-  const [dateRange, setDateRange] = useState({ start: null, end: null });
-  const [airportTransfer, setAirportTransfer] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [userDetails, setUserDetails] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    acceptTerms: false,
-  });
+const projects = [
+  { name: 'Project A', color: 'bg-blue-200' },
+  { name: 'Project B', color: 'bg-purple-200' },
+  // Add more projects as needed
+];
 
-  const calculateTotalCost = () => {
-    if (!selectedRoom || !dateRange.start || !dateRange.end) return 0;
-    const nights = Math.ceil(
-      (dateRange.end - dateRange.start) / (1000 * 60 * 60 * 24)
+const people = [
+  { id: 1, name: 'Alice', image: '/placeholder.jpg' },
+  { id: 2, name: 'Bob', image: '/placeholder.jpg' },
+  // Add more people as needed
+];
+
+function TaskRow({ task, toggleSelect, isSelected, onAction }) {
+  return (
+    <TableRow key={task.id}>
+      <TableCell><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(task.id)} /></TableCell>
+      <TableCell>{task.name}</TableCell>
+      <TableCell><span className={`px-2 py-1 rounded-full text-xs ${task.project.color}`}>{task.project.name}</span></TableCell>
+      <TableCell>{task.startDate}</TableCell>
+      <TableCell>{task.endDate}</TableCell>
+      <TableCell><Avatar className="mr-2"><AvatarImage src={task.assigned.image} /><AvatarFallback>{task.assigned.name.charAt(0)}</AvatarFallback></Avatar>{task.assigned.name}</TableCell>
+      <TableCell>{task.reportedTo.name}</TableCell>
+      <TableCell><Badge className={statuses.find(s => s.value === task.status).color}>{task.status}</Badge></TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost">Actions</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => onAction('setStatus', task)}>Set Status</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onAction('assignPerson', task)}>Assign Person</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onAction('assignProject', task)}>Assign Project</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onAction('remove', task)}>Remove</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+export default function App() {
+  const [tasks, setTasks] = useState([]);
+  const [selectedTasks, setSelectedTasks] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [filter, setFilter] = useState({ search: '', project: '', status: '', person: '' });
+
+  useEffect(() => {
+    // Simulate fetching tasks from an API
+    setTasks([
+      { id: 1, name: 'Task 1', project: projects[0], startDate: '2023-01-01', endDate: '2023-01-31', assigned: people[0], reportedTo: people[1], status: 'active' },
+      // More mock tasks...
+    ]);
+  }, []);
+
+  const filteredTasks = tasks.filter(task => 
+    (task.name.includes(filter.search) || 
+     task.assigned.name.includes(filter.search)) &&
+    (filter.project === '' || task.project.name === filter.project) &&
+    (filter.status === '' || task.status === filter.status) &&
+    (filter.person === '' || task.assigned.id === parseInt(filter.person))
+  );
+
+  const paginatedTasks = filteredTasks.slice((page - 1) * pageSize, page * pageSize);
+
+  const toggleSelect = (id) => {
+    setSelectedTasks(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
-    let total = selectedRoom.rate * nights;
-    if (airportTransfer) total += 120;
-    total += total * 0.05; // Service charge
-    total += total * 0.1; // SD Duty
-    return total;
   };
 
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <CardContent>
-            <DatePicker
-              onChange={(range) => setDateRange(range)}
-              minDate={new Date()}
-              maxDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
-            />
-            <Checkbox
-              checked={airportTransfer}
-              onCheckedChange={setAirportTransfer}
-              label="Airport Transfer"
-            />
-            <Button onClick={() => setStep(2)}>Next</Button>
-          </CardContent>
-        );
-      case 2:
-        return (
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {rooms.map((room) => (
-                <Card
-                  key={room.name}
-                  className={`${
-                    selectedRoom === room ? "border-blue-500" : ""
-                  }`}
-                  onClick={() => setSelectedRoom(room)}
-                >
-                  <CardHeader>
-                    <CardTitle>{room.name}</CardTitle>
-                    <p className="font-bold">${room.rate}/night</p>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="list-disc pl-5">
-                      {room.amenities.map((amenity) => (
-                        <li key={amenity}>{amenity}</li>
-                      ))}
-                    </ul>
-                    <Carousel>
-                      {room.photos.map((photo) => (
-                        <Dialog key={photo}>
-                          <DialogTrigger>
-                            <img src={photo} alt={room.name} />
-                          </DialogTrigger>
-                          <DialogContent>
-                            <img src={photo} alt={room.name} className="w-full" />
-                          </DialogContent>
-                        </Dialog>
-                      ))}
-                    </Carousel>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            <div className="mt-4 flex justify-between">
-              <Button onClick={() => setStep(1)}>Back</Button>
-              <Button onClick={() => setStep(3)} disabled={!selectedRoom}>
-                Next
-              </Button>
-            </div>
-          </CardContent>
-        );
-      case 3:
-        const totalCost = calculateTotalCost();
-        return (
-          <CardContent>
-            <h3>Summary</h3>
-            <p>Dates: {dateRange.start?.toDateString()} - {dateRange.end?.toDateString()}</p>
-            <p>Room: {selectedRoom?.name}</p>
-            <p>Room Cost: ${selectedRoom?.rate * Math.ceil((dateRange.end - dateRange.start) / (1000 * 60 * 60 * 24))}</p>
-            {airportTransfer && <p>Airport Transfer: $120</p>}
-            <p>Service Charge (5%): ${totalCost * 0.05}</p>
-            <p>SD Duty (10%): ${totalCost * 0.1}</p>
-            <p className="font-bold">Total Cost: ${totalCost}</p>
-            <div className="mt-4 flex justify-between">
-              <Button onClick={() => setStep(2)}>Back</Button>
-              <Button onClick={() => setStep(4)}>Proceed to Checkout</Button>
-            </div>
-          </CardContent>
-        );
-      case 4:
-        return (
-          <CardContent>
-            <Input
-              placeholder="Name"
-              value={userDetails.name}
-              onChange={(e) =>
-                setUserDetails({ ...userDetails, name: e.target.value })
-              }
-            />
-            <Input
-              placeholder="Phone"
-              value={userDetails.phone}
-              onChange={(e) =>
-                setUserDetails({ ...userDetails, phone: e.target.value })
-              }
-            />
-            <Input
-              placeholder="Email"
-              value={userDetails.email}
-              onChange={(e) =>
-                setUserDetails({ ...userDetails, email: e.target.value })
-              }
-            />
-            <Checkbox
-              checked={userDetails.acceptTerms}
-              onCheckedChange={(checked) =>
-                setUserDetails({ ...userDetails, acceptTerms: checked })
-              }
-              label="Accept Terms"
-            />
-            <p>Advance Payment (20%): ${calculateTotalCost() * 0.2}</p>
-            <div className="mt-4 flex justify-between">
-              <Button onClick={() => setStep(3)}>Back</Button>
-              <Button
-                onClick={() => setStep(5)}
-                disabled={
-                  !userDetails.name ||
-                  !userDetails.phone ||
-                  !userDetails.email ||
-                  !userDetails.acceptTerms
-                }
-              >
-                Confirm Reservation
-              </Button>
-            </div>
-          </CardContent>
-        );
-      case 5:
-        const advancePayment = calculateTotalCost() * 0.2;
-        const remainingPayment = calculateTotalCost() - advancePayment;
-        return (
-          <CardContent>
-            <h2 className="text-2xl font-bold mb-4">Thank you, {userDetails.name}!</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-bold">Booking Details</h3>
-                <p>Dates: {dateRange.start?.toDateString()} - {dateRange.end?.toDateString()}</p>
-                <p>Room: {selectedRoom?.name}</p>
-                <p>Total Cost: ${calculateTotalCost()}</p>
-              </div>
-              <div>
-                <h3 className="font-bold">Billing Details</h3>
-                <p>Name: {userDetails.name}</p>
-                <p>Phone: {userDetails.phone}</p>
-                <p>Email: {userDetails.email}</p>
-                <p>Advance Payment: ${advancePayment}</p>
-                <p>Remaining Payment: ${remainingPayment}</p>
-              </div>
-            </div>
-          </CardContent>
-        );
-      default:
-        return null;
-    }
+  const handleAction = (action, task) => {
+    console.log(`Action ${action} on task`, task);
+    // Implement action logic here
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <Card className="w-full max-w-2xl">
+    <div className="container mx-auto p-4">
+      <Card>
         <CardHeader>
-          <CardTitle>Hotel Reservation - Step {step}</CardTitle>
+          <CardTitle>Team Task Management</CardTitle>
         </CardHeader>
-        {renderStep()}
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+            <Input placeholder="Search tasks or people" value={filter.search} onChange={(e) => setFilter({...filter, search: e.target.value})} />
+            <Select onValueChange={(value) => setFilter({...filter, project: value})}>
+              <SelectItem value="">All Projects</SelectItem>
+              {projects.map(p => <SelectItem key={p.name} value={p.name}>{p.name}</SelectItem>)}
+            </Select>
+            <Select onValueChange={(value) => setFilter({...filter, status: value})}>
+              <SelectItem value="">All Statuses</SelectItem>
+              {statuses.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+            </Select>
+            <Select onValueChange={(value) => setFilter({...filter, person: value})}>
+              <SelectItem value="">All People</SelectItem>
+              {people.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+            </Select>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead></TableHead>
+                <TableHead>Task</TableHead>
+                <TableHead>Project</TableHead>
+                <TableHead>Start</TableHead>
+                <TableHead>End</TableHead>
+                <TableHead>Assigned</TableHead>
+                <TableHead>Reported</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedTasks.map(task => (
+                <TaskRow key={task.id} task={task} toggleSelect={toggleSelect} isSelected={selectedTasks.includes(task.id)} onAction={handleAction} />
+              ))}
+            </TableBody>
+          </Table>
+          <div className="flex justify-between items-center">
+            <div>Total Tasks: {filteredTasks.length}</div>
+            <Pagination 
+              total={Math.ceil(filteredTasks.length / pageSize)} 
+              current={page} 
+              onChange={setPage} 
+              pageSize={pageSize} 
+              onPageSizeChange={setPageSize} 
+            />
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

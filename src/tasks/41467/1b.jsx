@@ -1,206 +1,281 @@
-import React, { useState } from 'react';
-import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import React, { useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { format } from 'date-fns';
-import { Carousel } from "@/components/ui/carousel";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-const ROOMS = [
-  { id: 1, name: 'Standard Room', price: 100, amenities: ['Wi-Fi', 'TV', 'AC'], images: ['/room1.jpg', '/room2.jpg'] },
-  { id: 2, name: 'Deluxe Room', price: 150, amenities: ['Wi-Fi', 'TV', 'AC', 'Balcony'], images: ['/room3.jpg'] },
+const mockTasks = [
+  { id: 1, name: "Task 1", project: { name: "Project A", color: "#FF5733" }, startDate: "2023-07-01", endDate: "2023-07-15", assignedTo: { name: "John Doe", image: "" }, reportedTo: { name: "Jane Smith", image: "" }, status: "active" },
+  { id: 2, name: "Task 2", project: { name: "Project B", color: "#33FF57" }, startDate: "2023-07-05", endDate: "2023-07-20", assignedTo: { name: "Alice Johnson", image: "" }, reportedTo: { name: "Bob Brown", image: "" }, status: "inactive" },
+  // Add more mock tasks as needed
 ];
 
-function App() {
-  const [step, setStep] = useState(1);
-  const [dates, setDates] = useState({ start: null, end: null });
-  const [airportService, setAirportService] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', email: '' });
-  const [termsAccepted, setTermsAccepted] = useState(false);
+const mockProjects = [
+  { id: 1, name: "Project A", color: "#FF5733" },
+  { id: 2, name: "Project B", color: "#33FF57" },
+  // Add more mock projects as needed
+];
 
-  const today = new Date();
-  const maxDate = new Date(today);
-  maxDate.setDate(maxDate.getDate() + 30);
+const mockPersons = [
+  { id: 1, name: "John Doe", image: "" },
+  { id: 2, name: "Jane Smith", image: "" },
+  // Add more mock persons as needed
+];
 
-  const handleDateChange = (event) => {
-    const { name, value } = event.target;
-    setDates(prev => ({ ...prev, [name]: new Date(value) }));
-  };
+const statusColors = {
+  inactive: "bg-gray-200",
+  active: "bg-green-200",
+  done: "bg-green-500",
+  due: "bg-yellow-200",
+};
 
-  const totalNights = dates.start && dates.end ? (dates.end - dates.start) / (1000 * 60 * 60 * 24) : 0;
-  const totalCost = selectedRoom ? (selectedRoom.price * totalNights) + (airportService ? 120 : 0) : 0;
-  const serviceCharge = totalCost * 0.05;
-  const sdDuty = totalCost * 0.10;
-  const advancePayment = totalCost * 0.20;
-
+function PersonPill({ person }) {
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-lg">
-        <CardContent>
-          {step === 1 && (
-            <Step1 
-              dates={dates} 
-              handleDateChange={handleDateChange} 
-              setAirportService={setAirportService} 
-              setStep={setStep} 
-              today={today} 
-              maxDate={maxDate}
-            />
-          )}
-          {step === 2 && (
-            <Step2 
-              rooms={ROOMS} 
-              selectedRoom={selectedRoom} 
-              setSelectedRoom={setSelectedRoom} 
-              setStep={setStep} 
-              dates={dates} 
-              airportService={airportService}
-            />
-          )}
-          {step === 3 && (
-            <Step3 
-              selectedRoom={selectedRoom} 
-              dates={dates} 
-              airportService={airportService}
-              totalCost={totalCost}
-              serviceCharge={serviceCharge}
-              sdDuty={sdDuty}
-              setStep={setStep}
-            />
-          )}
-          {step === 4 && (
-            <Step4 
-              customerInfo={customerInfo} 
-              setCustomerInfo={setCustomerInfo} 
-              termsAccepted={termsAccepted}
-              setTermsAccepted={setTermsAccepted}
-              setStep={setStep}
-              advancePayment={advancePayment}
-            />
-          )}
-          {step === 5 && (
-            <Step5 
-              selectedRoom={selectedRoom} 
-              dates={dates} 
-              airportService={airportService}
-              customerInfo={customerInfo}
-              totalCost={totalCost}
-              advancePayment={advancePayment}
-            />
-          )}
-        </CardContent>
-      </Card>
+    <div className="flex items-center space-x-2 bg-gray-100 rounded-full px-2 py-1">
+      <Avatar className="h-6 w-6">
+        <AvatarImage src={person.image} alt={person.name} />
+        <AvatarFallback>{person.name.charAt(0)}</AvatarFallback>
+      </Avatar>
+      <span className="text-sm">{person.name}</span>
     </div>
   );
 }
 
-function Step1({ dates, handleDateChange, setAirportService, setStep, today, maxDate }) {
+function ProjectPill({ project }) {
   return (
-    <>
-      <CardTitle>Select Dates</CardTitle>
-      <Input type="date" name="start" onChange={handleDateChange} min={format(today, 'yyyy-MM-dd')} max={format(maxDate, 'yyyy-MM-dd')} />
-      <Input type="date" name="end" onChange={handleDateChange} min={format(dates.start || today, 'yyyy-MM-dd')} max={format(maxDate, 'yyyy-MM-dd')} />
-      <Checkbox checked={airportService} onCheckedChange={setAirportService}>Airport Drop In/Out</Checkbox>
-      <Button onClick={() => setStep(2)} disabled={!dates.start || !dates.end}>Next</Button>
-    </>
+    <div className="inline-block px-2 py-1 rounded-full text-xs" style={{ backgroundColor: project.color }}>
+      {project.name}
+    </div>
   );
 }
 
-function Step2({ rooms, selectedRoom, setSelectedRoom, setStep, dates, airportService }) {
+function TaskRow({ task, onSelect, isSelected }) {
   return (
-    <>
-      <CardTitle>Choose Your Room</CardTitle>
-      <p>Stay from {format(dates.start, 'PP')} to {format(dates.end, 'PP')}{airportService ? ' with Airport Service' : ''}</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {rooms.map(room => (
-          <RoomCard key={room.id} room={room} selected={selectedRoom === room} setSelectedRoom={setSelectedRoom} available={true} /> // Assume all rooms available for simplicity
-        ))}
-      </div>
-      <Button onClick={() => setStep(3)}>Next</Button>
-      <Button variant="secondary" onClick={() => setStep(1)}>Back</Button>
-    </>
+    <TableRow>
+      <TableCell>
+        <Checkbox checked={isSelected} onCheckedChange={() => onSelect(task.id)} />
+      </TableCell>
+      <TableCell>{task.name}</TableCell>
+      <TableCell><ProjectPill project={task.project} /></TableCell>
+      <TableCell>{task.startDate}</TableCell>
+      <TableCell>{task.endDate}</TableCell>
+      <TableCell><PersonPill person={task.assignedTo} /></TableCell>
+      <TableCell><PersonPill person={task.reportedTo} /></TableCell>
+      <TableCell>
+        <Badge className={statusColors[task.status]}>{task.status}</Badge>
+      </TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost">Actions</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>Set Status</DropdownMenuItem>
+            <DropdownMenuItem>Assign Person</DropdownMenuItem>
+            <DropdownMenuItem>Assign Project</DropdownMenuItem>
+            <DropdownMenuItem>Remove Task</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
   );
 }
 
-function RoomCard({ room, selected, setSelectedRoom, available }) {
-  const [isOpen, setIsOpen] = useState(false);
-
+function Filters({ onFilterChange }) {
   return (
-    <Card className={`${!available ? 'opacity-50 border-gray-300' : selected ? 'border-blue-500' : 'border'} cursor-pointer`} onClick={() => available && setSelectedRoom(room)}>
-      <CardHeader>
-        <CardTitle>{room.name}</CardTitle>
-        <CardDescription>${room.price}/night</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ul className="list-disc pl-5">
-          {room.amenities.map((amenity, idx) => <li key={idx}>{amenity}</li>)}
-        </ul>
-        <Carousel images={room.images} onClick={() => setIsOpen(true)} />
-        {isOpen && <div onClick={() => setIsOpen(false)}>Close Image</div>}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
+      <Input placeholder="Search tasks" onChange={(e) => onFilterChange("search", e.target.value)} />
+      <Select onValueChange={(value) => onFilterChange("project", value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select project" />
+        </SelectTrigger>
+        <SelectContent>
+          {mockProjects.map((project) => (
+            <SelectItem key={project.id} value={project.id.toString()}>{project.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select onValueChange={(value) => onFilterChange("status", value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select status" />
+        </SelectTrigger>
+        <SelectContent>
+          {Object.keys(statusColors).map((status) => (
+            <SelectItem key={status} value={status}>{status}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select onValueChange={(value) => onFilterChange("assignedTo", value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select assigned person" />
+        </SelectTrigger>
+        <SelectContent>
+          {mockPersons.map((person) => (
+            <SelectItem key={person.id} value={person.id.toString()}>{person.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
-function Step3({ selectedRoom, dates, airportService, totalCost, serviceCharge, sdDuty, setStep }) {
+function BulkActions({ selectedTasks, onBulkAction }) {
   return (
-    <>
-      <CardTitle>Summary</CardTitle>
-      <p>Dates: {format(dates.start, 'PP')} - {format(dates.end, 'PP')}</p>
-      <p>Room: {selectedRoom.name}</p>
-      <p>Airport Service: {airportService ? 'Yes' : 'No'}</p>
-      <p>Room Cost: ${totalCost - (airportService ? 120 : 0)}</p>
-      <p>Airport Service: ${airportService ? '120' : '0'}</p>
-      <p>Service Charge (5%): ${serviceCharge.toFixed(2)}</p>
-      <p>SD Duty (10%): ${sdDuty.toFixed(2)}</p>
-      <p><strong>Total Cost: ${(totalCost + serviceCharge + sdDuty).toFixed(2)}</strong></p>
-      <Button onClick={() => setStep(4)}>Proceed to Checkout</Button>
-      <Button variant="secondary" onClick={() => setStep(2)}>Back</Button>
-    </>
+    <div className="flex space-x-2 mb-4">
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button disabled={selectedTasks.length === 0}>Delete</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Tasks</DialogTitle>
+          </DialogHeader>
+          <p>Are you sure you want to delete the selected tasks?</p>
+          <Button onClick={() => onBulkAction("delete")}>Confirm</Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button disabled={selectedTasks.length === 0}>Set Status</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Status</DialogTitle>
+          </DialogHeader>
+          <Select onValueChange={(value) => onBulkAction("setStatus", value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(statusColors).map((status) => (
+                <SelectItem key={status} value={status}>{status}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DialogContent>
+      </Dialog>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button disabled={selectedTasks.length === 0}>Assign Person</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Person</DialogTitle>
+          </DialogHeader>
+          <Select onValueChange={(value) => onBulkAction("assignPerson", value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select person" />
+            </SelectTrigger>
+            <SelectContent>
+              {mockPersons.map((person) => (
+                <SelectItem key={person.id} value={person.id.toString()}>{person.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
-function Step4({ customerInfo, setCustomerInfo, termsAccepted, setTermsAccepted, setStep, advancePayment }) {
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (termsAccepted) setStep(5);
+export default function App() {
+  const [tasks, setTasks] = useState(mockTasks);
+  const [selectedTasks, setSelectedTasks] = useState([]);
+  const [filters, setFilters] = useState({});
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 10 });
+
+  const handleFilterChange = (filterType, value) => {
+    setFilters({ ...filters, [filterType]: value });
   };
 
-  return (
-    <form onSubmit={handleSubmit}>
-      <CardTitle>Checkout</CardTitle>
-      <Input placeholder="Name" value={customerInfo.name} onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})} required />
-      <Input type="tel" placeholder="Phone" value={customerInfo.phone} onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})} required />
-      <Input type="email" placeholder="Email" value={customerInfo.email} onChange={e => setCustomerInfo({...customerInfo, email: e.target.value})} required />
-      <Checkbox checked={termsAccepted} onCheckedChange={setTermsAccepted}>I accept the terms and conditions</Checkbox>
-      <p>Advance Payment: ${advancePayment.toFixed(2)}</p>
-      <Button type="submit">Confirm Reservation</Button>
-      <Button variant="secondary" onClick={() => setStep(3)}>Back</Button>
-    </form>
-  );
-}
+  const handleTaskSelect = (taskId) => {
+    setSelectedTasks(prev => 
+      prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
+    );
+  };
 
-function Step5({ selectedRoom, dates, airportService, customerInfo, totalCost, advancePayment }) {
+  const handleBulkAction = (action, value) => {
+    // Implement bulk actions here
+    console.log(`Bulk action: ${action}, value: ${value}, tasks: ${selectedTasks}`);
+  };
+
+  const filteredTasks = tasks.filter(task => {
+    if (filters.search && !task.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
+    if (filters.project && task.project.id.toString() !== filters.project) return false;
+    if (filters.status && task.status !== filters.status) return false;
+    if (filters.assignedTo && task.assignedTo.id.toString() !== filters.assignedTo) return false;
+    return true;
+  });
+
+  const paginatedTasks = filteredTasks.slice(
+    (pagination.page - 1) * pagination.pageSize,
+    pagination.page * pagination.pageSize
+  );
+
   return (
-    <>
-      <CardTitle>Thank You!</CardTitle>
-      <div className="flex flex-col sm:flex-row justify-between">
-        <div>
-          <h3>Booking Details</h3>
-          <p>{selectedRoom.name}</p>
-          <p>{format(dates.start, 'PP')} - {format(dates.end, 'PP')}</p>
-          {airportService && <p>Airport Service Included</p>}
-        </div>
-        <div>
-          <h3>Billing Details</h3>
-          <p>{customerInfo.name}</p>
-          <p>{customerInfo.email}</p>
-          <p>Advance Paid: ${advancePayment.toFixed(2)}</p>
-          <p>Balance on Check-in: ${((totalCost + (totalCost * 0.15)) - advancePayment).toFixed(2)}</p>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Team Task Management</h1>
+      <div className="flex justify-between mb-4">
+        <Button>Create Person</Button>
+        <Button>Create Project</Button>
+      </div>
+      <Filters onFilterChange={handleFilterChange} />
+      <BulkActions selectedTasks={selectedTasks} onBulkAction={handleBulkAction} />
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead></TableHead>
+            <TableHead>Task Name</TableHead>
+            <TableHead>Project</TableHead>
+            <TableHead>Start Date</TableHead>
+            <TableHead>End Date</TableHead>
+            <TableHead>Assigned To</TableHead>
+            <TableHead>Reported To</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {paginatedTasks.map(task => (
+            <TaskRow 
+              key={task.id} 
+              task={task} 
+              onSelect={handleTaskSelect}
+              isSelected={selectedTasks.includes(task.id)}
+            />
+          ))}
+        </TableBody>
+      </Table>
+      <div className="flex justify-between items-center mt-4">
+        <span>Total tasks: {filteredTasks.length}</span>
+        <div className="flex items-center space-x-2">
+          <Select value={pagination.pageSize.toString()} onValueChange={(value) => setPagination({ ...pagination, pageSize: parseInt(value) })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[10, 50, 100].map(size => (
+                <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={() => setPagination({ ...pagination, page: Math.max(1, pagination.page - 1) })}>Previous</Button>
+          <span>Page {pagination.page}</span>
+          <Button onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}>Next</Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
-
-export default App;
