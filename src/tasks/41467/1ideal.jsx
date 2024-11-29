@@ -44,7 +44,7 @@ const statusColors = {
 };
 
 function PersonPill({ person }) {
-  return (
+  return person ? (
     <div className="flex items-center space-x-2 bg-gray-100 rounded-full px-2 py-1">
       <Avatar className="h-6 w-6">
         <AvatarImage src={person.image} alt={person.name} />
@@ -52,15 +52,125 @@ function PersonPill({ person }) {
       </Avatar>
       <span className="text-sm">{person.name}</span>
     </div>
-  );
+  ) : '';
 }
 
 function ProjectPill({ project }) {
-  return (
+  return project ? (
     <div className="inline-block px-2 py-1 rounded-full text-xs" style={{ backgroundColor: project.color }}>
       {project.name}
     </div>
-  );
+  ) : '';
+}
+
+function SelectStatus({ onValueChange }) {
+  return (
+    <Select onValueChange={onValueChange}>
+      <SelectTrigger>
+        <SelectValue placeholder="Select status" />
+      </SelectTrigger>
+      <SelectContent>
+        {Object.keys(statusColors).map((status) => (
+          <SelectItem key={status} value={status}>{status}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+function SelectPerson({ onValueChange, placeholder, persons }) {
+  return (
+    <Select onValueChange={onValueChange}>
+      <SelectTrigger>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {persons.map((person) => (
+          <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+function SelectProject({ onValueChange, projects }) {
+  return (
+    <Select onValueChange={onValueChange}>
+      <SelectTrigger>
+        <SelectValue placeholder="Select project" />
+      </SelectTrigger>
+      <SelectContent>
+        {projects.map((project) => (
+          <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+function SetStatus({ children, handleValueChange }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Set Status</DialogTitle>
+        </DialogHeader>
+        <SelectStatus onValueChange={handleValueChange} />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function AssignPerson({ children, handleValueChange, persons }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Assign Person</DialogTitle>
+        </DialogHeader>
+        <SelectPerson onValueChange={handleValueChange} placeholder="Select assigned person" persons={persons} />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function AssignProject({ children, handleValueChange, projects }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Assign Project</DialogTitle>
+        </DialogHeader>
+        <SelectProject onValueChange={handleValueChange} projects={projects} />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DeleteTask({ children, handleDelete, description }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Task(s)</DialogTitle>
+        </DialogHeader>
+        <p>{description}</p>
+        <Button onClick={handleDelete}>Confirm</Button>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function TaskRow({ task, onSelect, isSelected, onAction, persons, projects }) {
@@ -85,78 +195,18 @@ function TaskRow({ task, onSelect, isSelected, onAction, persons, projects }) {
             <Button variant="ghost">Actions</Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <Dialog>
-              <DialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Set Status</DropdownMenuItem>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Set Status</DialogTitle>
-                </DialogHeader>
-                <Select onValueChange={(value) => onAction(task.id, "setStatus", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(statusColors).map((status) => (
-                      <SelectItem key={status} value={status}>{status}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </DialogContent>
-            </Dialog>
-            <Dialog>
-              <DialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Assign Person</DropdownMenuItem>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Assign Person</DialogTitle>
-                </DialogHeader>
-                <Select onValueChange={(value) => onAction(task.id, "assignPerson", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Person" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {persons.map((person) => (
-                      <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </DialogContent>
-            </Dialog>
-            <Dialog>
-              <DialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Assign Project</DropdownMenuItem>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Assign Project</DialogTitle>
-                </DialogHeader>
-                <Select onValueChange={(value) => onAction(task.id, "assignProject", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </DialogContent>
-            </Dialog>
-            <Dialog>
-              <DialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete Task</DropdownMenuItem>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Delete Task</DialogTitle>
-                </DialogHeader>
-                <p>Are you sure you want to delete this task?</p>
-                <Button onClick={() => onAction(task.id, 'delete')}>Confirm</Button>
-              </DialogContent>
-            </Dialog>
+            <SetStatus handleValueChange={(value) => onAction(task.id, "setStatus", value)}>
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Set Status</DropdownMenuItem>
+            </SetStatus>
+            <AssignPerson handleValueChange={(value) => onAction(task.id, "assignPerson", value)} persons={persons}>
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Assign Person</DropdownMenuItem>
+            </AssignPerson>
+            <AssignProject handleValueChange={(value) => onAction(task.id, "assignProject", value)} projects={projects}>
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Assign Project</DropdownMenuItem>
+            </AssignProject>
+            <DeleteTask handleDelete={() => onAction(task.id, 'delete')} description="Are you sure you want to delete this task?">
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete Task</DropdownMenuItem>
+            </DeleteTask>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -168,36 +218,10 @@ function Filters({ onFilterChange, persons, projects }) {
   return (
     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
       <Input placeholder="Search tasks" onChange={(e) => onFilterChange("search", e.target.value)} />
-      <Select onValueChange={(value) => onFilterChange("project", value)}>
-        <SelectTrigger>
-          <SelectValue placeholder="Select project" />
-        </SelectTrigger>
-        <SelectContent>
-          {projects.map((project) => (
-            <SelectItem key={project.id} value={project.id.toString()}>{project.name}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select onValueChange={(value) => onFilterChange("status", value)}>
-        <SelectTrigger>
-          <SelectValue placeholder="Select status" />
-        </SelectTrigger>
-        <SelectContent>
-          {Object.keys(statusColors).map((status) => (
-            <SelectItem key={status} value={status}>{status}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select onValueChange={(value) => onFilterChange("assignedTo", value)}>
-        <SelectTrigger>
-          <SelectValue placeholder="Select assigned person" />
-        </SelectTrigger>
-        <SelectContent>
-          {persons.map((person) => (
-            <SelectItem key={person.id} value={person.id.toString()}>{person.name}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <SelectProject onValueChange={(value) => onFilterChange("project", value)} projects={projects} />
+      <SelectStatus onValueChange={(value) => onFilterChange("status", value)} />
+      <SelectPerson onValueChange={(value) => onFilterChange("assignedTo", value)} placeholder="Select assigned person" persons={persons} />
+
     </div>
   );
 }
@@ -205,60 +229,50 @@ function Filters({ onFilterChange, persons, projects }) {
 function BulkActions({ selectedTasks, onBulkAction, persons, projects }) {
   return (
     <div className="flex space-x-2 mb-4">
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button disabled={selectedTasks.length === 0}>Delete</Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Tasks</DialogTitle>
-          </DialogHeader>
-          <p>Are you sure you want to delete the selected tasks?</p>
-          <Button onClick={() => onBulkAction("delete")}>Confirm</Button>
-        </DialogContent>
-      </Dialog>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button disabled={selectedTasks.length === 0}>Set Status</Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Set Status</DialogTitle>
-          </DialogHeader>
-          <Select onValueChange={(value) => onBulkAction("setStatus", value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(statusColors).map((status) => (
-                <SelectItem key={status} value={status}>{status}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </DialogContent>
-      </Dialog>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button disabled={selectedTasks.length === 0}>Assign Person</Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Assign Person</DialogTitle>
-          </DialogHeader>
-          <Select onValueChange={(value) => onBulkAction("assignPerson", value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select person" />
-            </SelectTrigger>
-            <SelectContent>
-              {persons.map((person) => (
-                <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </DialogContent>
-      </Dialog>
+      <DeleteTask handleDelete={() => onBulkAction("delete")} description="Are you sure you want to delete the selected tasks?">
+        <Button disabled={selectedTasks.length === 0}>Delete</Button>
+      </DeleteTask>
+      <SetStatus handleValueChange={(value) => onBulkAction("setStatus", value)}>
+        <Button disabled={selectedTasks.length === 0}>Set Status</Button>
+      </SetStatus>
+      <AssignPerson handleValueChange={(value) => onBulkAction("assignPerson", value)} persons={persons}>
+        <Button disabled={selectedTasks.length === 0}>Assign Person</Button>
+      </AssignPerson>
     </div>
   );
+}
+
+function CreateTask({ tasks, setTasks }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState();
+
+  const handleCreate = () => {
+    let id = tasks.length > 0 ? tasks[tasks.length - 1].id + 1 : 1;
+    setTasks(prev => [...prev, { id, name, status: 'inactive' }]);
+    setName("");
+    setOpen(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button onClick={() => setOpen(true)}>Create Task</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Task</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <Input
+            type="text"
+            placeholder="Name"
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <Button onClick={handleCreate}>Create Task</Button>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function CreatePerson({ persons, setPersons }) {
@@ -273,9 +287,9 @@ function CreatePerson({ persons, setPersons }) {
   }
 
   return (
-    <Dialog open={open}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button onClick={()=>setOpen(true)}>Create Person</Button>
+        <Button onClick={() => setOpen(true)}>Create Person</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -294,7 +308,7 @@ function CreatePerson({ persons, setPersons }) {
   )
 }
 
-function CreateProject({projects, setProjects}) {
+function CreateProject({ projects, setProjects }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState();
   const [color, setColor] = useState();
@@ -308,9 +322,9 @@ function CreateProject({projects, setProjects}) {
   }
 
   return (
-    <Dialog open={open}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button onClick={()=>setOpen(true)}>Create Project</Button>
+        <Button onClick={() => setOpen(true)}>Create Project</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -353,6 +367,7 @@ export default function App() {
   };
 
   const handleTaskAction = (id, action, value) => {
+    console.log({id,action,value});
     switch (action) {
       case 'setStatus':
         setTasks(prev => {
@@ -448,7 +463,8 @@ export default function App() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Team Task Management</h1>
-      <div className="flex justify-between mb-4">
+      <div className="flex gap-4 mb-4">
+        <CreateTask tasks={tasks} setTasks={setTasks} />
         <CreatePerson persons={persons} setPersons={setPersons} />
         <CreateProject projects={projects} setProjects={setProjects} />
       </div>
