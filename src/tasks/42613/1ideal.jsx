@@ -26,6 +26,102 @@ const formatBytes = (bytes) => {
   return `${bytes.toFixed(2)} MB`;
 };
 
+function ResultCard({ results, showSavings }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Cost Breakdown</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Topic</TableHead>
+              <TableHead>S3</TableHead>
+              <TableHead>R2</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {["storage", "bandwidth", "requests", "total"].map((topic) => (
+              <TableRow key={topic}>
+                <TableCell className="capitalize">{topic}</TableCell>
+                <TableCell>
+                  ${results.s3[topic].toFixed(2)}
+                  <InfoModal topic={topic} provider="S3" data={results} />
+                </TableCell>
+                <TableCell>
+                  ${results.r2[topic].toFixed(2)}
+                  <InfoModal topic={topic} provider="R2" data={results} />
+                </TableCell>
+              </TableRow>
+            ))}
+            {showSavings && (
+              <>
+                <TableRow>
+                  <TableCell>Monthly Savings</TableCell>
+                  <TableCell>
+                    {results.s3.total < results.r2.total ?
+                      '$' + ((results.s3.total - results.r2.total) * -1).toFixed(2) :
+                      ''
+                    }
+                  </TableCell>
+                  <TableCell>
+                    {results.s3.total > results.r2.total ?
+                      '$' + (results.s3.total - results.r2.total).toFixed(2) :
+                      ''
+                    }
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Yearly Savings</TableCell>
+                  <TableCell>
+                    {results.s3.total < results.r2.total ?
+                      '$' + ((results.s3.total - results.r2.total) * -1 * 12).toFixed(2) :
+                      ''
+                    }
+                  </TableCell>
+                  <TableCell>
+                    {results.s3.total > results.r2.total ?
+                      '$' + ((results.s3.total - results.r2.total) * 12).toFixed(2) :
+                      ''
+                    }
+                  </TableCell>
+                </TableRow>
+              </>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  )
+}
+
+function AssumptionsCard({ region }) {
+  return (
+    <Card className="lg:w-1/3">
+      <CardHeader>
+        <CardTitle>Assumptions and Cost Units</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <h3 className="font-bold mb-2">Assumptions</h3>
+        <ul className="list-disc pl-5 mb-4">
+          <li>POST/PUT/DELETE is 1.5 per file count</li>
+          <li>All calculations are based on monthly usage</li>
+        </ul>
+        <h3 className="font-bold mb-2">Cost Units</h3>
+        <ul className="list-disc pl-5">
+          <li>S3 Storage: ${region.s3Price}/GB/month</li>
+          <li>R2 Storage: ${region.r2Price}/GB/month (first 10GB free)</li>
+          <li>S3 Bandwidth: $0.09/GB (first 100GB free)</li>
+          <li>R2 Bandwidth: Free</li>
+          <li>S3 Requests: $0.0000004 per GET, $0.000005 per PUT/POST/DELETE</li>
+          <li>R2 Requests: $0.0000036 per GET (first 1M free), $0.000036 per PUT/POST/DELETE</li>
+        </ul>
+      </CardContent>
+    </Card>
+  )
+}
+
 function CostCalculator() {
   const [region, setRegion] = useState(regions[0]);
   const [storage, setStorage] = useState(10);
@@ -187,95 +283,11 @@ function CostCalculator() {
           </Card>
 
           {results && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Cost Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Topic</TableHead>
-                      <TableHead>S3</TableHead>
-                      <TableHead>R2</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {["storage", "bandwidth", "requests", "total"].map((topic) => (
-                      <TableRow key={topic}>
-                        <TableCell className="capitalize">{topic}</TableCell>
-                        <TableCell>
-                          ${results.s3[topic].toFixed(2)}
-                          <InfoModal topic={topic} provider="S3" data={results} />
-                        </TableCell>
-                        <TableCell>
-                          ${results.r2[topic].toFixed(2)}
-                          <InfoModal topic={topic} provider="R2" data={results} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {showSavings && (
-                      <>
-                        <TableRow>
-                          <TableCell>Monthly Savings</TableCell>
-                          <TableCell>
-                            { results.s3.total < results.r2.total ?
-                              '$' + ( (results.s3.total - results.r2.total) * -1 ).toFixed(2) :
-                              ''
-                            }
-                          </TableCell>
-                          <TableCell>
-                            { results.s3.total > results.r2.total ?
-                              '$' + (results.s3.total - results.r2.total).toFixed(2) :
-                              ''
-                            }
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Yearly Savings</TableCell>
-                          <TableCell>
-                            { results.s3.total < results.r2.total ?
-                              '$' + ( (results.s3.total - results.r2.total) * -1 * 12  ).toFixed(2) :
-                              ''
-                            }
-                          </TableCell>
-                          <TableCell>
-                            { results.s3.total > results.r2.total ?
-                              '$' + ( (results.s3.total - results.r2.total)  * 12  ).toFixed(2) :
-                              ''
-                            }
-                          </TableCell>
-                        </TableRow>
-                      </>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <ResultCard results={results} showSavings={showSavings} />
           )}
         </div>
 
-        <Card className="lg:w-1/3">
-          <CardHeader>
-            <CardTitle>Assumptions and Cost Units</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <h3 className="font-bold mb-2">Assumptions</h3>
-            <ul className="list-disc pl-5 mb-4">
-              <li>POST/PUT/DELETE is 1.5 per file count</li>
-              <li>All calculations are based on monthly usage</li>
-            </ul>
-            <h3 className="font-bold mb-2">Cost Units</h3>
-            <ul className="list-disc pl-5">
-              <li>S3 Storage: ${region.s3Price}/GB/month</li>
-              <li>R2 Storage: ${region.r2Price}/GB/month (first 10GB free)</li>
-              <li>S3 Bandwidth: $0.09/GB (first 100GB free)</li>
-              <li>R2 Bandwidth: Free</li>
-              <li>S3 Requests: $0.0000004 per GET, $0.000005 per PUT/POST/DELETE</li>
-              <li>R2 Requests: $0.0000036 per GET (first 1M free), $0.000036 per PUT/POST/DELETE</li>
-            </ul>
-          </CardContent>
-        </Card>
+        <AssumptionsCard region={region} />
       </div>
     </div>
   );
