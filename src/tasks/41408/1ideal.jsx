@@ -63,6 +63,159 @@ const BusLayout = ({ onSeatSelect, selectedSeats, bookedSeats }) => {
   );
 };
 
+const RouteSelectionCard = ({ from, setFrom, to, setTo, date, setDate, setStep }) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Step 1: Select Journey Details</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        <Select value={from} onValueChange={setFrom}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select From" />
+          </SelectTrigger>
+          <SelectContent>
+            {destinations.map((dest) => (
+              <SelectItem key={dest} value={dest}>
+                {dest}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={to} onValueChange={setTo}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select To" />
+          </SelectTrigger>
+          <SelectContent>
+            {destinations.map((dest) => (
+              <SelectItem key={dest} value={dest}>
+                {dest}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input type="date" value={date ? date.toISOString().slice(0, 10) : undefined} onChange={(e) => setDate(new Date(e.target.value))} />
+        <Button onClick={() => setStep(2)}>Next</Button>
+      </CardContent>
+    </Card>
+  );
+}
+const BusSelectionCard = ({ from, to, date, setSelectedBus, setStep }) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Step 2: Select Bus</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4">
+          From: {from}, To: {to}, Date: {date.toDateString()}
+        </div>
+        {buses.map((bus) => (
+          <Card key={bus.id} className="mb-4 cursor-pointer" onClick={() => {
+            setSelectedBus(bus);
+            setStep(3);
+          }}>
+            <CardContent className="p-4 flex justify-between items-center">
+              <div>
+                <div>{bus.company}</div>
+                <div>{bus.route}</div>
+                <div>{bus.time}</div>
+              </div>
+              <div>${bus.price}</div>
+            </CardContent>
+          </Card>
+        ))}
+        <Button onClick={() => setStep(1)}>Back</Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+const SeatSelectionCard = ({ selectedBus, selectedSeats, handleSeatSelect, bookedSeats, setStep }) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Step 3: Select Seats</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4">
+          Bus: {selectedBus.company}, Route: {selectedBus.route}, Time: {selectedBus.time}
+        </div>
+        <BusLayout
+          onSeatSelect={handleSeatSelect}
+          selectedSeats={selectedSeats}
+          bookedSeats={bookedSeats}
+        />
+        <div className="mb-4">Selected Seats: {selectedSeats.join(", ")}</div>
+        <Button onClick={() => setStep(2)} className="mr-2">Back</Button>
+        <Button onClick={() => setStep(4)}>Next</Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+const CheckoutCard = ({ selectedBus, date, selectedSeats, name, setName, phone, setPhone, email, setEmail, agreeTerms, setAgreeTerms, handleSubmit, setStep }) => {
+  const subtotal = selectedBus.price * selectedSeats.length;
+  const bookingFee = subtotal * 0.05;
+  const vat = (subtotal + bookingFee) * 0.1;
+  const total = subtotal + bookingFee + vat;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Step 4: Checkout</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4">
+          Date: {date?.toDateString()}, Bus: {selectedBus.company}, Seats: {selectedSeats.join(", ")}
+        </div>
+        <div className="mb-4">
+          <div>Subtotal: ${subtotal}</div>
+          <div>Booking Fee (5%): ${bookingFee.toFixed(2)}</div>
+          <div>VAT (10%): ${vat.toFixed(2)}</div>
+          <div>Total: ${total.toFixed(2)}</div>
+        </div>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="mb-2" />
+        <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" className="mb-2" />
+        <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="mb-2" />
+        <div>
+          <Checkbox checked={agreeTerms} onCheckedChange={setAgreeTerms} id="terms" className="mb-4 me-2" />
+          <label htmlFor="terms">
+            I agree to the terms
+          </label>
+        </div>
+        <Button onClick={() => setStep(3)} className="mr-2">Back</Button>
+        <Button onClick={handleSubmit} disabled={!agreeTerms}>Confirm Booking</Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+const ThankYouCard = ({ name, phone, email, pnr, date, selectedBus, selectedSeats }) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Thank you, {name}!</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col sm:flex-row">
+        <div className="w-full sm:w-1/2 mb-4 sm:mb-0">
+          <h3 className="font-bold mb-2">Order Details</h3>
+          <div>Name: {name}</div>
+          <div>Phone: {phone}</div>
+          <div>Email: {email}</div>
+          <div>PNR: {pnr}</div>
+        </div>
+        <div className="w-full sm:w-1/2">
+          <h3 className="font-bold mb-2">Journey Details</h3>
+          <div>Date: {date?.toDateString()}</div>
+          <div>Time: {selectedBus.time}</div>
+          <div>Seats: {selectedSeats.join(", ")}</div>
+          <div>Route: {selectedBus.route}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function App() {
   const [step, setStep] = useState(1);
   const [from, setFrom] = useState("");
@@ -98,148 +251,62 @@ export default function App() {
     switch (step) {
       case 1:
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Step 1: Select Journey Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select value={from} onValueChange={setFrom} className="mb-4">
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select From" />
-                </SelectTrigger>
-                <SelectContent>
-                  {destinations.map((dest) => (
-                    <SelectItem key={dest} value={dest}>
-                      {dest}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={to} onValueChange={setTo} className="mb-4">
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select To" />
-                </SelectTrigger>
-                <SelectContent>
-                  {destinations.map((dest) => (
-                    <SelectItem key={dest} value={dest}>
-                      {dest}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input type="date" value={date ? date.toISOString().slice(0, 10) : undefined} onChange={(e) => setDate(new Date(e.target.value))} className="mb-4" />
-              <Button onClick={() => setStep(2)}>Next</Button>
-            </CardContent>
-          </Card>
+          <RouteSelectionCard
+            to={to}
+            setTo={setTo}
+            from={from}
+            setFrom={setFrom}
+            date={date}
+            setDate={setDate}
+            setStep={setStep} />
         );
       case 2:
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Step 2: Select Bus</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                From: {from}, To: {to}, Date: {date.toDateString()}
-              </div>
-              {buses.map((bus) => (
-                <Card key={bus.id} className="mb-4 cursor-pointer" onClick={() => {
-                  setSelectedBus(bus);
-                  setStep(3);
-                }}>
-                  <CardContent className="flex justify-between items-center">
-                    <div>
-                      <div>{bus.company}</div>
-                      <div>{bus.route}</div>
-                      <div>{bus.time}</div>
-                    </div>
-                    <div>${bus.price}</div>
-                  </CardContent>
-                </Card>
-              ))}
-              <Button onClick={() => setStep(1)}>Back</Button>
-            </CardContent>
-          </Card>
+          <BusSelectionCard
+            to={to}
+            from={from}
+            date={date}
+            setSelectedBus={setSelectedBus}
+            setStep={setStep} />
         );
       case 3:
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Step 3: Select Seats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                Bus: {selectedBus.company}, Route: {selectedBus.route}, Time: {selectedBus.time}
-              </div>
-              <BusLayout
-                onSeatSelect={handleSeatSelect}
-                selectedSeats={selectedSeats}
-                bookedSeats={bookedSeats}
-              />
-              <div className="mb-4">Selected Seats: {selectedSeats.join(", ")}</div>
-              <Button onClick={() => setStep(2)} className="mr-2">Back</Button>
-              <Button onClick={() => setStep(4)}>Next</Button>
-            </CardContent>
-          </Card>
+          <SeatSelectionCard
+            selectedBus={selectedBus}
+            selectedSeats={selectedSeats}
+            handleSeatSelect={handleSeatSelect}
+            bookedSeats={bookedSeats}
+            setStep={setStep} />
         );
       case 4:
-        const subtotal = selectedBus.price * selectedSeats.length;
-        const bookingFee = subtotal * 0.05;
-        const vat = (subtotal+bookingFee) * 0.1;
-        const total = subtotal + bookingFee + vat;
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Step 4: Checkout</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                Date: {date?.toDateString()}, Bus: {selectedBus.company}, Seats: {selectedSeats.join(", ")}
-              </div>
-              <div className="mb-4">
-                <div>Subtotal: ${subtotal}</div>
-                <div>Booking Fee (5%): ${bookingFee.toFixed(2)}</div>
-                <div>VAT (10%): ${vat.toFixed(2)}</div>
-                <div>Total: ${total.toFixed(2)}</div>
-              </div>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="mb-2" />
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" className="mb-2" />
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="mb-2" />
-              <div>
-                <Checkbox checked={agreeTerms} onCheckedChange={setAgreeTerms} id="terms" className="mb-4 me-2" />
-                <label htmlFor="terms">
-                  I agree to the terms
-                </label>
-              </div>
-              <Button onClick={() => setStep(3)} className="mr-2">Back</Button>
-              <Button onClick={handleSubmit} disabled={!agreeTerms}>Confirm Booking</Button>
-            </CardContent>
-          </Card>
-        );
+          <CheckoutCard
+            selectedBus={selectedBus}
+            date={date}
+            selectedSeats={selectedSeats}
+            name={name}
+            setName={setName}
+            phone={phone}
+            setPhone={setPhone}
+            email={email}
+            setEmail={setEmail}
+            agreeTerms={agreeTerms}
+            setAgreeTerms={setAgreeTerms}
+            handleSubmit={handleSubmit}
+            setStep={setStep}
+          />
+        )
       case 5:
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Thank you, {name}!</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col sm:flex-row">
-              <div className="w-full sm:w-1/2 mb-4 sm:mb-0">
-                <h3 className="font-bold mb-2">Order Details</h3>
-                <div>Name: {name}</div>
-                <div>Phone: {phone}</div>
-                <div>Email: {email}</div>
-                <div>PNR: {pnr}</div>
-              </div>
-              <div className="w-full sm:w-1/2">
-                <h3 className="font-bold mb-2">Journey Details</h3>
-                <div>Date: {date?.toDateString()}</div>
-                <div>Time: {selectedBus.time}</div>
-                <div>Seats: {selectedSeats.join(", ")}</div>
-                <div>Route: {selectedBus.route}</div>
-              </div>
-            </CardContent>
-          </Card>
-        );
+          <ThankYouCard
+            name={name}
+            phone={phone}
+            email={email}
+            pnr={pnr}
+            date={date}
+            selectedBus={selectedBus}
+            selectedSeats={selectedSeats} />
+        )
       default:
         return null;
     }
