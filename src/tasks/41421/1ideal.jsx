@@ -55,26 +55,31 @@ function formatTime(time) {
 
 function Step1({ onSelectSpecialist }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {specialists.map((specialist) => (
-        <Card key={specialist.id} className="flex items-center p-4">
-          <img
-            src={specialist.image}
-            alt={specialist.name}
-            className="w-16 h-16 rounded-full mr-4"
-          />
-          <div>
-            <h3 className="font-bold">{specialist.name}</h3>
-            <p className="text-sm text-gray-500">{specialist.specialty}</p>
-          </div>
-          <Button
-            className="ml-auto"
-            onClick={() => onSelectSpecialist(specialist)}
-          >
-            Select
-          </Button>
-        </Card>
-      ))}
+    <div>
+      <h2 className="text-xl font-bold mb-4">Select Specialist</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {specialists.map((specialist) => (
+          <Card key={specialist.id}>
+            <CardContent className="flex items-center p-4">
+              <img
+                src={specialist.image}
+                alt={specialist.name}
+                className="w-16 h-16 rounded-full mr-4"
+              />
+              <div>
+                <h3 className="font-bold">{specialist.name}</h3>
+                <p className="text-sm text-gray-500">{specialist.specialty}</p>
+              </div>
+              <Button
+                className="ml-auto"
+                onClick={() => onSelectSpecialist(specialist)}
+              >
+                Select
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
@@ -91,17 +96,21 @@ function Step2({ specialist, onSelectDate }) {
     <div>
       <p>Specialist: {specialist.name}</p>
       <h2 className="text-xl font-bold mb-4">Select a Date</h2>
-      <Calendar
-        mode="single"
-        selected={selectedDate}
-        onSelect={handleDateSelect}
-        disabled={(date) =>
-          date <= new Date() ||
-          !specialist.availability[
-          date.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
-          ]
-        }
-      />
+      <Card>
+        <CardContent class="p4">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={handleDateSelect}
+            disabled={(date) =>
+              date <= new Date() ||
+              !specialist.availability[
+              date.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
+              ]
+            }
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -119,7 +128,7 @@ function Step3({ specialist, date, onSelectSlots }) {
 
   const availableSlots =
     specialist.availability[
-      date.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
+    date.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
     ];
 
   return (
@@ -127,20 +136,24 @@ function Step3({ specialist, date, onSelectSlots }) {
       <p>Specialist: {specialist.name}</p>
       <p>Date: {formatDate(date)}</p>
       <h2 className="text-xl font-bold mb-4">Select Time Slots</h2>
-      <div className="grid grid-cols-3 gap-2">
-        {availableSlots.map((slot) => (
-          <Button
-            key={slot}
-            variant={selectedSlots.includes(slot) ? "default" : "outline"}
-            disabled={bookedSlots[date.toISOString().split("T")[0]]?.includes(
-              slot
-            )}
-            onClick={() => handleSlotSelect(slot)}
-          >
-            {formatTime(slot)}
-          </Button>
-        ))}
-      </div>
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-3 gap-2">
+            {availableSlots.map((slot) => (
+              <Button
+                key={slot}
+                variant={selectedSlots.includes(slot) ? "default" : "outline"}
+                disabled={bookedSlots[date.toISOString().split("T")[0]]?.includes(
+                  slot
+                )}
+                onClick={() => handleSlotSelect(slot)}
+              >
+                {formatTime(slot)}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
       <Button
         className="mt-4"
         disabled={selectedSlots.length === 0}
@@ -162,8 +175,8 @@ function Step4({ specialist, date, slots, onProceedToCheckout }) {
     <div>
       <h2 className="text-xl font-bold mb-4">Order Summary</h2>
       <Card>
-        <CardContent>
-          <div className="flex items-center mb-4">
+        <CardContent className="p-4">
+          <div className="flex mb-4">
             <img
               src={specialist.image}
               alt={specialist.name}
@@ -198,35 +211,40 @@ function Step5({ onBookAppointment }) {
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">Checkout</h2>
-      <Input
-        className="mb-2"
-        placeholder="Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <Input
-        className="mb-2"
-        placeholder="Phone"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-      />
-      <Input
-        className="mb-2"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <div className="flex items-center mb-4">
-        <Checkbox
-          id="terms"
-          checked={acceptTerms}
-          onCheckedChange={setAcceptTerms}
-        />
-        <label htmlFor="terms" className="ml-2">
-          I accept the terms and conditions
-        </label>
-      </div>
+      <Card>
+        <CardContent className="p-4">
+          <Input
+            className="mb-2"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input
+            className="mb-2"
+            placeholder="Phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+          <Input
+            className="mb-2"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <div className="flex items-center">
+            <Checkbox
+              id="terms"
+              checked={acceptTerms}
+              onCheckedChange={setAcceptTerms}
+            />
+            <label htmlFor="terms" className="ml-2">
+              I accept the terms and conditions
+            </label>
+          </div>
+        </CardContent>
+      </Card>
       <Button
+        className="mt-4"
         disabled={!name || !phone || !email || !acceptTerms}
         onClick={() => onBookAppointment({ name, phone, email })}
       >
