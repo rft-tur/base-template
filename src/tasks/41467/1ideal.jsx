@@ -37,10 +37,10 @@ const mockPersons = [
 ];
 
 const statusColors = {
-  inactive: "bg-gray-200",
-  active: "bg-green-200",
-  done: "bg-green-500",
-  due: "bg-yellow-200",
+  inactive: "bg-gray-500",
+  active: "bg-green-400",
+  done: "bg-green-600",
+  due: "bg-yellow-500",
 };
 
 function PersonPill({ person }) {
@@ -86,7 +86,7 @@ function SelectPerson({ onValueChange, placeholder, persons }) {
       </SelectTrigger>
       <SelectContent>
         {persons.map((person) => (
-          <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
+          <SelectItem key={person.id} value={person}>{person.name}</SelectItem>
         ))}
       </SelectContent>
     </Select>
@@ -101,7 +101,7 @@ function SelectProject({ onValueChange, projects }) {
       </SelectTrigger>
       <SelectContent>
         {projects.map((project) => (
-          <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+          <SelectItem key={project.id} value={project}>{project.name}</SelectItem>
         ))}
       </SelectContent>
     </Select>
@@ -187,7 +187,7 @@ function TaskRow({ task, onSelect, isSelected, onAction, persons, projects }) {
       <TableCell><PersonPill person={task.assignedTo} /></TableCell>
       <TableCell><PersonPill person={task.reportedTo} /></TableCell>
       <TableCell>
-        <Badge className={statusColors[task.status]}>{task.status}</Badge>
+        <Badge className={statusColors[task.status] + " uppercase"}>{task.status}</Badge>
       </TableCell>
       <TableCell>
         <DropdownMenu>
@@ -242,14 +242,25 @@ function BulkActions({ selectedTasks, onBulkAction, persons, projects }) {
   );
 }
 
-function CreateTask({ tasks, setTasks }) {
+function CreateTask({ tasks, setTasks, projects, persons }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState();
+  const [project, setProject] = useState();
+  const [startDate, setStartDate] = useState();
+  const [endDate, setEndDate] = useState();
+  const [assignedTo, setAssignedTo] = useState();
+  const [reportedTo, setReportedTo] = useState();
 
   const handleCreate = () => {
     let id = tasks.length > 0 ? tasks[tasks.length - 1].id + 1 : 1;
-    setTasks(prev => [...prev, { id, name, status: 'inactive' }]);
+    if (!name || !project || !startDate || !endDate || !assignedTo || !reportedTo) return;
+    setTasks(prev => [...prev, { id, name, project, startDate, endDate, assignedTo, reportedTo, status: 'inactive' }]);
     setName("");
+    setProject();
+    setStartDate();
+    setEndDate();
+    setAssignedTo();
+    setReportedTo();
     setOpen(false);
   }
 
@@ -268,6 +279,27 @@ function CreateTask({ tasks, setTasks }) {
             placeholder="Name"
             onChange={(e) => setName(e.target.value)}
           />
+          <SelectProject
+            onValueChange={setProject}
+            projects={projects} />
+          <Input
+            type="date"
+            placeholder="Start Date"
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <Input
+            type="date"
+            placeholder="End Date"
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+          <SelectPerson
+            onValueChange={setAssignedTo}
+            placeholder="Select assigned person"
+            persons={persons} />
+          <SelectPerson
+            onValueChange={setReportedTo}
+            placeholder="Select reporting person"
+            persons={persons} />
         </div>
         <Button onClick={handleCreate}>Create Task</Button>
       </DialogContent>
@@ -367,7 +399,7 @@ export default function App() {
   };
 
   const handleTaskAction = (id, action, value) => {
-    console.log({id,action,value});
+    console.log({ id, action, value });
     switch (action) {
       case 'setStatus':
         setTasks(prev => {
@@ -383,10 +415,7 @@ export default function App() {
         setTasks(prev => {
           return prev.map(task => {
             if (task.id === id) {
-              const project = projects.find(p => p.id === value);
-              if (project) {
-                return { ...task, project: { ...project } };
-              }
+              return { ...task, project: { ...value } };
             }
             return task;
           });
@@ -396,10 +425,7 @@ export default function App() {
         setTasks(prev => {
           return prev.map(task => {
             if (task.id === id) {
-              const person = persons.find(p => p.id === value);
-              if (person) {
-                return { ...task, assignedTo: { ...person } };
-              }
+              return { ...task, assignedTo: { ...value } };
             }
             return task;
           });
@@ -435,10 +461,7 @@ export default function App() {
         setTasks(prev => {
           return prev.map(task => {
             if (selectedTasks.includes(task.id)) {
-              const person = persons.find(p => p.id === value);
-              if (person) {
-                return { ...task, assignedTo: { ...person } };
-              }
+              return { ...task, assignedTo: { ...value } };
             }
             return task;
           });
@@ -449,9 +472,9 @@ export default function App() {
 
   const filteredTasks = tasks.filter(task => {
     if (filters.search && !task.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
-    if (filters.project && task.project.id.toString() !== filters.project) return false;
+    if (filters.project && task.project.id !== filters.project.id) return false;
     if (filters.status && task.status !== filters.status) return false;
-    if (filters.assignedTo && task.assignedTo.id.toString() !== filters.assignedTo) return false;
+    if (filters.assignedTo && task.assignedTo.id !== filters.assignedTo.id) return false;
     return true;
   });
 
@@ -464,7 +487,7 @@ export default function App() {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Team Task Management</h1>
       <div className="flex gap-4 mb-4">
-        <CreateTask tasks={tasks} setTasks={setTasks} />
+        <CreateTask tasks={tasks} setTasks={setTasks} projects={projects} persons={persons} />
         <CreatePerson persons={persons} setPersons={setPersons} />
         <CreateProject projects={projects} setProjects={setProjects} />
       </div>
