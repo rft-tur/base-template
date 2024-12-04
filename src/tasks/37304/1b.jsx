@@ -1,88 +1,146 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Toast, ToastProvider, useToast } from "@/components/ui/toast";
 
-function App() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [eventType, setEventType] = useState('day');
-  const [bringFriends, setBringFriends] = useState(false);
-  const [numFriends, setNumFriends] = useState(0);
-  const [totalCost, setTotalCost] = useState(null);
+const EventOption = ({ title, price, features, selected, onChange }) => (
+  <div className="mb-4">
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>${price}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {features.map((feature, idx) => (
+          <p key={idx}>{feature}</p>
+        ))}
+      </CardContent>
+      <CardFooter>
+        <Checkbox checked={selected} onCheckedChange={onChange} />
+      </CardFooter>
+    </Card>
+  </div>
+);
 
-  useEffect(() => {
-    let baseCost = eventType === 'day' ? 75 : 200;
-    let friendCost = bringFriends ? numFriends * (baseCost * 0.75) : 0;
-    setTotalCost(baseCost + friendCost || "Please fill out the form to calculate");
-  }, [eventType, bringFriends, numFriends]);
+const GuestForm = ({ onAddGuest }) => {
+  const [guest, setGuest] = useState({ name: '', email: '', age: '' });
+  const { toast } = useToast();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert('done');
+    if (guest.name && guest.email && guest.age) {
+      onAddGuest(guest);
+      setGuest({ name: '', email: '', age: '' });
+      toast({
+        title: "Guest Added",
+        description: "Guest has been added successfully."
+      });
+    }
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-100">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-bold">Register for SpaceX Launch Meetup</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="type">I am attending</Label>
-                <Select onValueChange={setEventType}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select event type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="day">Only day event</SelectItem>
-                    <SelectItem value="full">Full event</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {eventType === 'full' && (
-                <div>
-                  <div className="flex items-center">
-                    <Checkbox id="bringFriends" checked={bringFriends} onCheckedChange={setBringFriends} />
-                    <Label htmlFor="bringFriends" className="ml-2">I will bring friends</Label>
-                  </div>
-                  {bringFriends && (
-                    <div className="mt-2">
-                      <Label htmlFor="numFriends">Number of friends</Label>
-                      <Input type="number" id="numFriends" value={numFriends} onChange={(e) => setNumFriends(Number(e.target.value))} min="0" />
-                    </div>
-                  )}
-                </div>
-              )}
-              <div>
-                <Label>Total Cost</Label>
-                <p className="text-xl font-semibold">{typeof totalCost === 'number' ? `$${totalCost.toFixed(2)}` : totalCost}</p>
-              </div>
+    <form onSubmit={handleSubmit}>
+      <Input 
+        type="text" 
+        placeholder="Name" 
+        value={guest.name} 
+        onChange={(e) => setGuest({...guest, name: e.target.value})} 
+        required 
+      />
+      <Input 
+        type="email" 
+        placeholder="Email" 
+        value={guest.email} 
+        onChange={(e) => setGuest({...guest, email: e.target.value})} 
+        required 
+      />
+      <Input 
+        type="number" 
+        placeholder="Age" 
+        value={guest.age} 
+        onChange={(e) => setGuest({...guest, age: e.target.value})} 
+        required 
+      />
+      <Button type="submit">Add Guest</Button>
+    </form>
+  );
+};
+
+export default function App() {
+  const [eventOption, setEventOption] = useState(null);
+  const [guests, setGuests] = useState([]);
+  const [totalCost, setTotalCost] = useState(0);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    let cost = 0;
+    if (eventOption === 'launch') cost = 150;
+    else if (eventOption === 'full') cost = 225;
+
+    guests.forEach(guest => {
+      const guestCost = guest.age > 16 ? (eventOption === 'launch' ? 100 : 175) : (eventOption === 'launch' ? 50 : 75);
+      cost += guestCost;
+    });
+
+    setTotalCost(cost);
+  }, [eventOption, guests]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    toast({
+      title: "Registration Successful",
+      description: "Thank you for registering for the SpaceX Launch event!"
+    });
+  };
+
+  return (
+    <ToastProvider>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>SpaceX Jan25 Launch Registration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EventOption 
+              title="Launch Only" 
+              price="150"
+              features={["View the launch", "Access to launch site"]}
+              selected={eventOption === 'launch'}
+              onChange={() => setEventOption('launch')}
+            />
+            <EventOption 
+              title="Full Event with Night Stay" 
+              price="225"
+              features={["View the launch", "Access to launch site", "One night stay", "Dinner included"]}
+              selected={eventOption === 'full'}
+              onChange={() => setEventOption('full')}
+            />
+            <div className="mt-4">
+              <Label htmlFor="guests">Bring Friends or Family?</Label>
+              <Checkbox id="guests" onCheckedChange={(checked) => {
+                if (!checked) setGuests([]);
+              }} />
             </div>
-          </form>
-        </CardContent>
-        <CardFooter>
-          <Button type="submit" onClick={handleSubmit}>Go to checkout</Button>
-        </CardFooter>
-      </Card>
-    </div>
+            {guests.length > 0 && (
+              <div>
+                <h3 className="font-bold mt-4">Guests:</h3>
+                {guests.map((guest, index) => (
+                  <div key={index} className="mb-2">
+                    <span>{guest.name} ({guest.age > 16 ? 'Adult' : 'Child'})</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {eventOption && <GuestForm onAddGuest={(guest) => setGuests([...guests, guest])} />}
+          </CardContent>
+          <CardFooter>
+            <p>Total Cost: ${totalCost}</p>
+            <Button onClick={handleSubmit}>Submit Registration</Button>
+          </CardFooter>
+        </Card>
+      </div>
+    </ToastProvider>
   );
 }
-
-export default App;
