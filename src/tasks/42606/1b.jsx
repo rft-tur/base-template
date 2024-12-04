@@ -1,143 +1,118 @@
 import React, { useState, useEffect } from 'react';
-import { format, addMonths, subMonths, startOfWeek, startOfMonth, getDaysInMonth, isFuture } from 'date-fns';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
-import { toast, Toaster } from "@/components/ui/toast";
-import { ChevronLeft, ChevronRight, PlayCircle } from "lucide-react";
+//commented to prevent stackblitz from crashing
+import { Button, Card, CardContent, Modal, Input, Textarea, Select, SelectItem, Toast, useToast } from "@/components/ui";
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDate, getMonth, getYear } from 'date-fns';
 
-const platforms = {
-  facebook: '#3b5998',
-  instagram: '#E1306C',
-  tiktok: '#000000',
-  youtube: '#FF0000'
-};
+// Mock data for social media platforms
+const platforms = [
+  { name: 'facebook', color: 'bg-blue-600' },
+  { name: 'instagram', color: 'bg-pink-500' },
+  { name: 'tiktok', color: 'bg-black' },
+  { name: 'youtube', color: 'bg-red-600' },
+];
 
-function App() {
+// Mock posts data
+let mockPosts = [
+  { date: new Date(2023, 3, 15), platform: 'facebook', text: 'Launching new product!', image: 'thumbnail.jpg' },
+  { date: new Date(2023, 3, 20), platform: 'instagram', text: 'Check out our latest post.', image: 'insta.jpg' },
+];
+
+export default function App() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [calendar, setCalendar] = useState([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editContent, setEditContent] = useState(null);
-  const [newContent, setNewContent] = useState({
-    date: null,
-    platform: 'facebook',
-    time: '09:00',
-    text: '',
-    media: null
-  });
+  const [posts, setPosts] = useState(mockPosts);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editPost, setEditPost] = useState(null);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    generateCalendar();
-  }, [currentMonth]);
+  const start = startOfMonth(currentMonth);
+  const end = endOfMonth(currentMonth);
+  const days = eachDayOfInterval({ start, end });
 
-  const generateCalendar = () => {
-    const startDay = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 0 });
-    const daysInMonth = getDaysInMonth(currentMonth);
-    let day = startDay;
-    let calendarDays = [];
+  const handleMonthChange = (direction) => {
+    setCurrentMonth(direction === 'next' ? addMonths(currentMonth, 1) : subMonths(currentMonth, 1));
+  };
 
-    for (let i = 0; i < 6 * 7; i++) {
-      calendarDays.push({
-        date: new Date(day),
-        content: null,
-        isCurrentMonth: day.getMonth() === currentMonth.getMonth()
+  const handleOpenModal = (day = null, post = null) => {
+    if (day && day < new Date()) {
+      toast({
+        variant: "destructive",
+        title: "Cannot schedule in the past.",
       });
-      day = addMonths(day, 1);
+      return;
     }
-    setCalendar(calendarDays);
+    setEditPost(post || { date: day || new Date(), platform: platforms[0].name, text: '', image: '' });
+    setModalOpen(true);
   };
 
-  const handleDateClick = (day) => {
-    if (!day.isCurrentMonth || isFuture(day.date)) return toast({ variant: "destructive", title: "Cannot schedule for this date." });
-    setNewContent({ ...newContent, date: day.date });
-    setEditContent(day.content);
-    setDialogOpen(true);
-  };
-
-  const handleSubmit = () => {
-    // Here you would typically send data to an API
-    toast({ title: "Content Saved Successfully" });
-    setDialogOpen(false);
-    generateCalendar(); // Refresh calendar to show updated content
+  const handleSubmitPost = (e) => {
+    e.preventDefault();
+    let updatedPosts = editPost.id ? 
+      posts.map(p => p.id === editPost.id ? { ...editPost, id: editPost.id } : p) : 
+      [...posts, { ...editPost, id: Date.now() }];
+    setPosts(updatedPosts);
+    setModalOpen(false);
+    toast({
+      title: "Post Scheduled.",
+      description: "Your post has been successfully scheduled."
+    });
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <Toaster />
-      <div className="flex justify-between items-center mb-4">
-        <Button size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft /></Button>
-        <h2 className="text-lg font-bold">{format(currentMonth, 'MMMM yyyy')}</h2>
-        <Button size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight /></Button>
-      </div>
-      <table className="w-full table-auto border-collapse">
-        <thead>
-          <tr>
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <th key={day} className="p-2 border">{day}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {Array.from({ length: 6 }).map((_, rowIndex) => (
-            <tr key={rowIndex}>
-              {calendar.slice(rowIndex * 7, (rowIndex + 1) * 7).map(day => (
-                <td key={day.date.toISOString()} 
-                    className={`p-2 border ${!day.isCurrentMonth ? 'opacity-50' : ''}`}
-                    onClick={() => handleDateClick(day)}>
-                  <div>{format(day.date, 'd')}</div>
-                  {day.content && <ContentPreview content={day.content} />}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <ContentDialog 
-        open={dialogOpen} 
-        onClose={() => setDialogOpen(false)} 
-        content={editContent || newContent} 
-        onChange={setNewContent}
-        onSubmit={handleSubmit}
-      />
-    </div>
-  );
-}
-
-function ContentPreview({ content }) {
-  return (
-    <div className="mt-2 space-y-1">
-      <div className="flex items-center">
-        <div className="w-12 text-sm">{content.time}</div>
-        {content.media && 
-          <div className="relative w-8 h-8 bg-gray-200 mr-2">
-            {content.media.type.startsWith('video') && <PlayCircle className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />}
+    <div className="p-4 sm:p-8">
+      <Card className="mb-4">
+        <CardContent>
+          <div className="flex justify-between items-center mb-4">
+            <Button onClick={() => handleMonthChange('prev')}>Previous</Button>
+            <h2>{format(currentMonth, 'MMMM yyyy')}</h2>
+            <Button onClick={() => handleMonthChange('next')}>Next</Button>
           </div>
-        }
-        <div>{content.text.slice(0, 100)}...</div>
-      </div>
+          <table className="w-full table-auto">
+            <thead>
+              <tr>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <th key={day} className="text-xs">{day}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {Array(Math.ceil(days.length / 7)).fill().map((_, rowIndex) => (
+                <tr key={rowIndex}>
+                  {days.slice(rowIndex * 7, (rowIndex + 1) * 7).map((day, idx) => {
+                    const dayPosts = posts.filter(p => getDate(p.date) === getDate(day));
+                    return (
+                      <td key={idx} className="border p-2 h-24 relative">
+                        <div onClick={() => handleOpenModal(day)} className="cursor-pointer">
+                          {getDate(day)}
+                          {dayPosts.map((post, i) => (
+                            <div key={i} className={`mt-1 p-1 rounded ${platforms.find(p => p.name === post.platform).color} text-white`}>
+                              <div>{format(post.date, 'HH:mm')}</div>
+                              <div>{post.text.slice(0, 100)}...</div>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
+        <form onSubmit={handleSubmitPost}>
+          <Card>
+            <CardContent>
+              <Input type="date" value={format(editPost.date, 'yyyy-MM-dd')} onChange={e => setEditPost({...editPost, date: new Date(e.target.value)})} />
+              <Select value={editPost.platform} onChange={value => setEditPost({...editPost, platform: value})}>
+                {platforms.map(p => <SelectItem key={p.name} value={p.name}>{p.name}</SelectItem>)}
+              </Select>
+              <Textarea value={editPost.text} onChange={e => setEditPost({...editPost, text: e.target.value})} placeholder="Post content" />
+              <Input type="text" value={editPost.image} onChange={e => setEditPost({...editPost, image: e.target.value})} placeholder="Image URL" />
+            </CardContent>
+            <Button type="submit">Save Post</Button>
+          </Card>
+        </form>
+      </Modal>
     </div>
   );
 }
-
-function ContentDialog({ open, onClose, content, onChange, onSubmit }) {
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{content.date ? format(content.date, 'MMMM d, yyyy') : 'New Content'}</DialogTitle>
-        </DialogHeader>
-        <Input type="time" value={content.time} onChange={(e) => onChange({...content, time: e.target.value})} />
-        <Select value={content.platform} onValueChange={(value) => onChange({...content, platform: value})}>
-          {Object.keys(platforms).map(platform => <SelectItem key={platform} value={platform}>{platform}</SelectItem>)}
-        </Select>
-        <Input value={content.text} onChange={(e) => onChange({...content, text: e.target.value})} placeholder="Content text" />
-        {/* Add file input for media here */}
-        <DialogFooter>
-          <Button type="submit" onClick={onSubmit}>Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export default App;
