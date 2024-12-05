@@ -21,6 +21,7 @@ const initialData = [
 ];
 
 function CalendarMonthView({ currentDate, data, setSelectedContent, setIsDialogOpen }) {
+  const { toast } = useToast();
 
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
